@@ -4,7 +4,10 @@ from torch import nn
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 from tacotron2.data.ljspeech import get_dataset
-from tacotron2.data.transforms import MelSpectrogram, Compose, AddLengths, Pad, TextPreprocess
+from tacotron2.data.transforms import (
+    MelSpectrogram, Compose, AddLengths, Pad, 
+    TextPreprocess, ToNumpy, AudioSqueeze, ToGpu)
+from tacotron2.data.collate import no_pad_collate
 from tacotron2.model.net import Tacotron2
 from tacotron2.utils import fix_seeds
 
@@ -22,6 +25,7 @@ class Tacotron2Trainer(pl.LightningModule):
         self.batch_size = config.train.batch_size
         self.text_transform = TextPreprocess(config.alphabet)
         self.mel = MelSpectrogram()
+        self.gpu = ToGpu('cuda' if torch.cuda.is_available() else 'cpu')
         self.train_preprocess = Compose([
             AddLengths(),
             Pad()
@@ -39,7 +43,7 @@ class Tacotron2Trainer(pl.LightningModule):
         self.config = config
 
     def forward(self, batch):
-        batch = self.mel(batch)
+        batch = self.mel(self.gpu(batch))
         if self.training:
             batch = self.train_preprocess(batch)
         else:
@@ -149,7 +153,7 @@ class Tacotron2Trainer(pl.LightningModule):
         # REQUIRED
         # can return multiple optimizers and learning_rate schedulers
         # (LBFGS it is automatically supported, no need for closure function)
-        return torch.optim.Adam(self.parameters(), lr=self.lr)
+        return torch.optim.Adam(self.model.parameters(), lr=self.lr)
 
     # dataset:
 
@@ -158,9 +162,9 @@ class Tacotron2Trainer(pl.LightningModule):
 
     def train_dataloader(self):
         transforms = Compose([
+            self.text_transform,
             ToNumpy(),
-            AudioSqueeze(),
-            self.text_transform
+            AudioSqueeze()
         ])
         dataset_train = get_dataset(self.config, part='train', transforms=transforms)
         dataset_train = torch.utils.data.DataLoader(dataset_train,
@@ -169,9 +173,9 @@ class Tacotron2Trainer(pl.LightningModule):
 
     def val_dataloader(self):
         transforms = Compose([
+            self.text_transform,
             ToNumpy(),
-            AudioSqueeze(),
-            self.text_transform
+            AudioSqueeze()
         ])
         dataset_val = get_dataset(self.config, part='val', transforms=transforms)
         dataset_val = torch.utils.data.DataLoader(dataset_val,

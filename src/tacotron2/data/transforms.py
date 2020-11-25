@@ -8,6 +8,7 @@ import torchaudio
 
 import librosa
 from matplotlib import pyplot as plt
+import numpy as np
 
 
 @dataclass
@@ -105,16 +106,18 @@ class MelSpectrogram(nn.Module):
         # )
 
 
-    def forward(self, data) -> torch.Tensor:
+    def forward(self, data):
+        mels = []
+        for i in range(len(data['audio'])):
+            mel = self.mel_spectrogram(data['audio'][i]) \
+                .clamp_(min=1e-5) \
+                .log_()
 
-        mel = self.mel_spectrogram(data['audio']) \
-            .clamp_(min=1e-5) \
-            .log_()
+            # if self.training:
+            #     mel = self.mask_spec(mel)
 
-        # if self.training:
-        #     mel = self.mask_spec(mel)
-
-        data['mel'] = mel
+            mels.append(mel)
+        data['mel'] = mels
         return data
 
 
@@ -141,15 +144,22 @@ class AudioSqueeze:
 
 
 class TextPreprocess:
-    def __init__(self, alphabet='Nqwertyuiopasdfghjklzxcvbnm!,;.? '):
+    def __init__(self, alphabet='N!,;.? '):
         self.alphabet = alphabet
         self.sym2id = {i: a for i, a in enumerate(alphabet)}
 
     def __call__(self, data):
-        data['text'] = list(list(data['text'].lower().strip()).map(lambda x: self.sym2id[x]))
+        data['text'] = list(map(lambda x: self.sym2id.get(x, 0), list(data['text'].lower().strip())))
         return data
 
-
+class ToNumpy:
+    """
+    Transform to make numpy array
+    """
+    def __call__(self, data):
+        data['audio'] = np.array(data['audio'])
+        data['text'] = np.array(data['text'])
+        return data
 
 class AddLengths:
     def __call__(self, data):
@@ -158,6 +168,13 @@ class AddLengths:
         data['text_lengths'] = torch.tensor([item.shape[0] for item in data['text']]).to(data['text'][0].device)
         return data
 
+class ToGpu:
+    def __init__(self, device):
+        self.device = device
+
+    def __call__(self, data):
+        data = {k: [torch.from_numpy(np.array(item)).to(self.device) for item in v] for k, v in data.items()}
+        return data
 
 class Pad:
     def __init__(self, config=MelSpectrogramConfig):

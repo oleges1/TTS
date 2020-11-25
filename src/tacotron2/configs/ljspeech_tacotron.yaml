@@ -1,11 +1,11 @@
-alphabet: "Nqwertyuiopasdfghjklzxcvbnm!,;.? "
+alphabet: "Nabcdefghijklmnopqrstuvwxyz!,;.? "
 dataset:
   root: DB/LJspeech
   train_part: 0.95
   name: ljspeech
   sample_rate: 22050
 train:
-  lr: 1e-4
+  lr: 1.e-4
   batch_size: 8
   trainer: Tacotron2Trainer
   use_guided_attention: True
