@@ -3,3 +3,5 @@ jsonlines
 matplotlib
 scikit-learn
 jupyterlab
+torchaudio
+librosa

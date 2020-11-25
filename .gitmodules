@@ -1,0 +1,3 @@
+[submodule "waveglow"]
+	path = src/waveglow
+	url = http://github.com/NVIDIA/waveglow
