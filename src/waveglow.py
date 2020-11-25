@@ -1,10 +1,11 @@
 import sys
-sys.path.append('waveglow/')
+sys.path.append('src/waveglow/')
 
 import warnings
 warnings.filterwarnings('ignore')
 from google_drive_downloader import GoogleDriveDownloader as gdd
-
+import torch
+from torch import nn
 
 class Vocoder(nn.Module):
 

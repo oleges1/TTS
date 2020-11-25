@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from math import sqrt
 from tacotron2.model.blocks import CRNNEncoder, TacotronDecoder, Postnet
 from tacotron2.data.transforms import MelSpectrogramConfig
 
@@ -18,7 +19,7 @@ class Tacotron2(nn.Module):
         self.decoder = TacotronDecoder(**config.decoder)
         self.postnet = Postnet(**config.postnet)
         self.config = config
-        self.pad_value = config.get('pad_value', MelSpectrogramConfig.pad_value)
+        self.pad_value = config.get('data', {}).get('pad_value', MelSpectrogramConfig.pad_value)
 
     def forward(
             self,

@@ -4,9 +4,9 @@ from torch import nn
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 from tacotron2.data.ljspeech import get_dataset
-from tacotron2.data.transforms import ToGpu, MelSpectrogram, Compose, AddLengths, Pad, TextPreprocess
+from tacotron2.data.transforms import MelSpectrogram, Compose, AddLengths, Pad, TextPreprocess
 from tacotron2.model.net import Tacotron2
-from tacotron2.trainers.utils import fix_seeds
+from tacotron2.utils import fix_seeds
 
 
 class Tacotron2Trainer(pl.LightningModule):

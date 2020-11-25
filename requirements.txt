@@ -3,5 +3,12 @@ jsonlines
 matplotlib
 scikit-learn
 jupyterlab
-torchaudio
+torchaudio==0.6.0
 librosa
+pytorch-lightning
+audiomentations
+wandb
+pyyaml
+easydict
+googledrivedownloader
+glow

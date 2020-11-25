@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from tacotron2.model.blocks import Linears
+from tacotron2.model.utils import Linears
 
 class LocationBlock(nn.Module):
 

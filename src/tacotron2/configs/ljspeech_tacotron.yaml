@@ -2,7 +2,7 @@ alphabet: "Nqwertyuiopasdfghjklzxcvbnm!,;.? "
 train:
   lr: 1e-4
   batch_size: 8
-  trainer: trainer_ljspeech
+  trainer: Tacotron2Trainer
   use_guided_attention: True
   use_monotonic_attention: False
   seed: 42
