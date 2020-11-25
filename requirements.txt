@@ -11,4 +11,3 @@ wandb
 pyyaml
 easydict
 googledrivedownloader
-glow
