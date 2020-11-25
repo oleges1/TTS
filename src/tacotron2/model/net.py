@@ -19,7 +19,7 @@ class Tacotron2(nn.Module):
         self.decoder = TacotronDecoder(**config.decoder)
         self.postnet = Postnet(**config.postnet)
         self.config = config
-        self.pad_value = config.get('data', {}).get('pad_value', MelSpectrogramConfig.pad_value)
+        self.pad_value = config.dataset.get('pad_value', MelSpectrogramConfig.pad_value)
 
     def forward(
             self,

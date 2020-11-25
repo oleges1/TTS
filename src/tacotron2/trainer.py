@@ -36,7 +36,7 @@ class Tacotron2Trainer(pl.LightningModule):
             self.vocoder = Vocoder().eval()
         else:
             self.vocoder = None
-        self.logger.experiment.init(config=config)
+        self.config = config
 
     def forward(self, batch):
         batch = self.mel(batch)

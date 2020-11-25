@@ -1,4 +1,9 @@
 alphabet: "Nqwertyuiopasdfghjklzxcvbnm!,;.? "
+dataset:
+  root: DB/LJspeech
+  train_part: 0.95
+  name: ljspeech
+  sample_rate: 22050
 train:
   lr: 1e-4
   batch_size: 8
@@ -10,7 +15,7 @@ train:
   val_log_period: 20
   trainer_args:
     max_epochs: 20
-    gpus: 1
+    gpus: 0
     gradient_clip_val: 10
 encoder:
   in_channels: 512

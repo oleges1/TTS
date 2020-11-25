@@ -3,7 +3,7 @@ jsonlines
 matplotlib
 scikit-learn
 jupyterlab
-torchaudio==0.6.0
+torchaudio
 librosa
 pytorch-lightning
 audiomentations
