@@ -13,7 +13,7 @@ class Tacotron2Trainer(pl.LightningModule):
     def __init__(
            self,
            config,
-           vocoder=None
+           Vocoder=None
         ):
         super(Tacotron2Trainer, self).__init__()
         fix_seeds(seed=config.train.seed)
@@ -32,7 +32,10 @@ class Tacotron2Trainer(pl.LightningModule):
         self.g = config.train.get(
             'guiding_window_width', 0.2
         )
-        self.vocoder = vocoder
+        if Vocoder is not None:
+            self.vocoder = Vocoder().eval()
+        else:
+            self.vocoder = None
         self.logger.experiment.init(config=config)
 
     def forward(self, batch):

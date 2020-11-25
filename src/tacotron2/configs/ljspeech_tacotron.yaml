@@ -38,4 +38,4 @@ postnet:
   kernel_size: 5
   num_layers: 5
   dropout_prob: 0.5
-vocoder: waveglow
+vocoder: waveglow # not supported yet
