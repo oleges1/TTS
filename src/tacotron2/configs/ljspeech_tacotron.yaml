@@ -15,7 +15,7 @@ train:
   val_log_period: 20
   trainer_args:
     max_epochs: 20
-    gpus: 0
+    gpus: 1
     gradient_clip_val: 10
 encoder:
   in_channels: 512
