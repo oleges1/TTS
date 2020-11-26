@@ -23,6 +23,7 @@ class Tacotron2Trainer(pl.LightningModule):
         self.model = Tacotron2(config)
         self.lr = config.train.lr
         self.batch_size = config.train.batch_size
+        self.weight_decay = config.train.weight_decay
         self.text_transform = TextPreprocess(config.alphabet)
         self.mel = MelSpectrogram()
         self.gpu = ToGpu('cuda' if torch.cuda.is_available() else 'cpu')
@@ -166,7 +167,7 @@ class Tacotron2Trainer(pl.LightningModule):
         # REQUIRED
         # can return multiple optimizers and learning_rate schedulers
         # (LBFGS it is automatically supported, no need for closure function)
-        return torch.optim.Adam(self.model.parameters(), lr=self.lr)
+        return torch.optim.Adam(self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
 
     # dataset:
 

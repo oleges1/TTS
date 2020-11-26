@@ -5,8 +5,9 @@ dataset:
   name: ljspeech
   sample_rate: 22050
 train:
-  lr: 1.e-4
-  batch_size: 32
+  lr: 1.e-3
+  weight_decay: 1.e-6
+  batch_size: 64
   trainer: Tacotron2Trainer
   use_guided_attention: True
   use_monotonic_attention: False
