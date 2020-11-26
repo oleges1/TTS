@@ -144,13 +144,13 @@ class AudioSqueeze:
 
 
 class TextPreprocess:
-    def __init__(self, alphabet='SE!,;.? '):
+    def __init__(self, alphabet='SUE!,;.? '):
         self.alphabet = alphabet
         self.sym2id = {a: i for i, a in enumerate(alphabet)}
         self.id2sym = {i: a for i, a in enumerate(alphabet)}
 
     def __call__(self, data):
-        data['text'] = list(map(lambda x: self.sym2id.get(x, 0), list(data['text'].lower().strip()))) + [1]
+        data['text'] = list(map(lambda x: self.sym2id.get(x, 1), list(data['text'].lower().strip()))) + [2]
         return data
 
     def reverse(self, vector):
