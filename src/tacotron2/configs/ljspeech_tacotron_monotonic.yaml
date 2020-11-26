@@ -1,4 +1,4 @@
-alphabet: "Nabcdefghijklmnopqrstuvwxyz!,;.? "
+alphabet: "SEabcdefghijklmnopqrstuvwxyz!,;.? "
 dataset:
   root: DB/LJspeech
   train_part: 0.95
@@ -10,8 +10,7 @@ train:
   batch_size: 64
   num_workers: 8
   trainer: Tacotron2Trainer
-  use_guided_attention: True
-  use_monotonic_attention: False
+  use_guided_attention: False
   seed: 42
   train_log_period: 50
   val_log_period: 20
@@ -36,6 +35,7 @@ decoder:
   attention_dim: 128
   attention_location_n_filters: 32
   attention_location_kernel_size: 31
+  use_monotonic_attention: True
   teacher_forcing_ratio: 1.
   dropout_prob: 0.5
   zoneout_prob: 0.1

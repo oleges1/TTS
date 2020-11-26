@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
-from tacotron2.model.attention import LocationSensitiveAttention
+from tacotron2.model.attention import LocationSensitiveAttention, MonotonicLocationSensitiveAttention
 from tacotron2.model.utils import Linears, ZoneOutCell
 
 class CRNNEncoder(nn.Module):
@@ -113,7 +113,8 @@ class TacotronDecoder(nn.Module):
         teacher_forcing_ratio=1.,
         dropout_prob=0.5,
         zoneout_prob=0.1,
-        gate_thr=0.5
+        gate_thr=0.5,
+        use_monotonic_attention=False
     ):
         super(TacotronDecoder, self).__init__()
         self.prenet = Linears(n_mel_channels, prenet_dim,
@@ -131,11 +132,18 @@ class TacotronDecoder(nn.Module):
                 hidden_size=decoder_rnn_dim
             ), zoneout_prob=zoneout_prob)
         self.decoder_rnn_dim = decoder_rnn_dim
-        self.attention_layer = LocationSensitiveAttention(
-            attention_rnn_dim, encoder_embedding_dim,
-            attention_dim, attention_location_n_filters,
-            attention_location_kernel_size
-        )
+        if use_monotonic_attention:
+            self.attention_layer = MonotonicLocationSensitiveAttention(
+                attention_rnn_dim, encoder_embedding_dim,
+                attention_dim, attention_location_n_filters,
+                attention_location_kernel_size
+            )
+        else:
+            self.attention_layer = LocationSensitiveAttention(
+                attention_rnn_dim, encoder_embedding_dim,
+                attention_dim, attention_location_n_filters,
+                attention_location_kernel_size
+            )
         self.output_project = Linears(
             decoder_rnn_dim + encoder_embedding_dim, n_mel_channels)
         self.gate = Linears(
@@ -222,7 +230,7 @@ class TacotronDecoder(nn.Module):
             alignments.append(attention_weights.unsqueeze(1))
             if (
                 (mels is not None and len(mel_outputs) == mels.shape[1]) or
-                (mels is None and (predicted_gate.item() > self.gate_thr or len(mel_outputs) > 5 * max_length))
+                (mels is None and (predicted_gate.item() > self.gate_thr or len(mel_outputs) > 100 * max_length))
             ):
                 break
         # parse outputs:

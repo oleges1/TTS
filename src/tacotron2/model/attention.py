@@ -35,7 +35,8 @@ class LocationSensitiveAttention(nn.Module):
         embedding_dim,
         attention_dim,
         attention_location_n_filters,
-        attention_location_kernel_size
+        attention_location_kernel_size,
+        init_r=-4
     ):
         super().__init__()
 
@@ -47,6 +48,7 @@ class LocationSensitiveAttention(nn.Module):
             attention_location_kernel_size,
             attention_dim
         )
+        self.r = nn.Parameter(torch.Tensor([init_r]))
         self.score_mask_value = -1e20
 
     def get_alignment_energies(
@@ -65,7 +67,7 @@ class LocationSensitiveAttention(nn.Module):
 
         energies = self.v(torch.tanh(
             processed_query + processed_attention_weights + processed_memory
-        ))
+        )) + self.r
 
         energies = energies.squeeze(2)
         return energies
@@ -99,3 +101,72 @@ class LocationSensitiveAttention(nn.Module):
         attention_context = attention_context.squeeze(1)
 
         return attention_context, attention_weights
+
+class MonotonicLocationSensitiveAttention(LocationSensitiveAttention):
+    # with help: https://github.com/j-min/MoChA-pytorch
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.sigmoid = nn.Sigmoid()
+
+    def gaussian_noise(self, tensor_like):
+        """Additive gaussian nosie to encourage discreteness"""
+        return torch.empty_like(tensor_like).normal_()
+
+    def safe_cumprod(self, x):
+        """Numerically stable cumulative product by cumulative sum in log-space"""
+        return torch.exp(torch.cumsum(torch.log(torch.clamp(x, min=1e-10, max=1)), dim=1))
+
+    def exclusive_cumprod(self, x):
+        """Exclusive cumulative product [a, b, c] => [1, a, a * b]
+        * TensorFlow: https://www.tensorflow.org/api_docs/python/tf/cumprod
+        * PyTorch: https://discuss.pytorch.org/t/cumprod-exclusive-true-equivalences/2614
+        """
+        batch_size, sequence_length = x.size()
+        if torch.cuda.is_available():
+            one_x = torch.cat([torch.ones(batch_size, 1).cuda(), x], dim=1)[:, :-1]
+        else:
+            one_x = torch.cat([torch.ones(batch_size, 1), x], dim=1)[:, :-1]
+        return torch.cumprod(one_x, dim=1)
+
+    def forward(
+        self,
+        attention_hidden_state,
+        memory,
+        processed_memory,
+        attention_weights_cat,
+        mask
+    ):
+        if attention_weights_cat.sum() == 0:
+            # first step
+            alpha = torch.zeros_like(attention_weights_cat[:, 0])
+            alpha[:, 0] = 1.
+            return alpha
+        else:
+            alignment = super().get_alignment_energies(
+                    attention_hidden_state, processed_memory, attention_weights_cat
+            )
+            if self.training:
+                # soft:
+                if mask is not None:
+                    # fill inplace:
+                    alignment = alignment.data.masked_fill_(mask, self.score_mask_value)
+
+                p_select = self.sigmoid(alignment + self.gaussian_noise(alignment)))
+                cumprod_1_minus_p = self.safe_cumprod(1 - p_select)
+                alpha = p_select * cumprod_1_minus_p * \
+                    torch.cumsum(previous_alpha / cumprod_1_minus_p, dim=1)
+                return alpha
+            else:
+                # hard:
+                above_threshold = (alignment > 0).float()
+
+                p_select = above_threshold * torch.cumsum(attention_weights_cat[:, 0], dim=1)
+                attention = p_select * self.exclusive_cumprod(1 - p_select)
+
+                # Not attended => attend at last encoder output
+                # Assume that encoder outputs are not padded (this is true on inference)
+                attended = attention.sum(dim=1)
+                for batch_i in range(attention_weights_cat.shape[0]):
+                    if not attended[batch_i]:
+                        attention[batch_i, -1] = 1
+                return attention

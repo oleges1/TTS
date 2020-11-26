@@ -23,7 +23,8 @@ class Tacotron2Trainer(pl.LightningModule):
         self.model = Tacotron2(config)
         self.lr = config.train.lr
         self.batch_size = config.train.batch_size
-        self.weight_decay = config.train.weight_decay
+        self.weight_decay = config.train.get('weight_decay', 0.)
+        self.num_workers = config.train.get('num_workers', 4)
         self.text_transform = TextPreprocess(config.alphabet)
         self.mel = MelSpectrogram()
         self.gpu = ToGpu('cuda' if torch.cuda.is_available() else 'cpu')
@@ -59,16 +60,14 @@ class Tacotron2Trainer(pl.LightningModule):
         b, t, n = alignments.shape
         grid_t, grid_n = torch.meshgrid(torch.arange(t, device=alignments.device), torch.arange(n, device=alignments.device))
         W = 1 - torch.exp(-(-grid_n / n + grid_t/t) ** 2 / 2 / self.g**2)
+        W.requires_grad = False
         return torch.mean(alignments * W[None]), W
-
-    def monotonic_attention_loss(self, alignments):
-        # TODO
-        return 0
 
     def gate_loss(self, gate_out, mel_lengths):
         gate_target = torch.zeros_like(gate_out)
         for i in range(gate_out.shape[0]):
             gate_target[i, mel_lengths[i]:] = 1
+        gate_target.requires_grad = False
         return self.gate_bce(gate_out, gate_target)
 
     def training_step(self, batch, batch_nb):
@@ -78,12 +77,11 @@ class Tacotron2Trainer(pl.LightningModule):
         batch['mel'] = batch['mel'].permute(0, 2, 1)
         mel_outputs, mel_outputs_postnet, gate_out, alignments = self(batch)
         y = batch['mel']
+        y.requires_grad = False
         train_mse = self.mseloss(mel_outputs, y) + self.mseloss(mel_outputs_postnet, y)
         train_gate = self.gate_loss(gate_out, batch['mel_lengths'])
         if self.config.train.use_guided_attention:
             attn_loss, guide = self.guided_attention_loss(alignments)
-        elif self.config.train.use_monotonic_attention:
-            attn_loss = self.monotonic_attention_loss(alignments)
         loss = train_mse + train_gate + attn_loss
         self.logger.experiment.log({
             'train_loss': loss.item(), 'train_mse': train_mse.item(), 'train_gate_loss': train_gate.item(), 'train_attn_loss': attn_loss.item()
@@ -182,7 +180,7 @@ class Tacotron2Trainer(pl.LightningModule):
         ])
         dataset_train = get_dataset(self.config, part='train', transforms=transforms)
         dataset_train = torch.utils.data.DataLoader(dataset_train,
-                              batch_size=self.batch_size, collate_fn=no_pad_collate, shuffle=True, num_workers=4)
+                              batch_size=self.batch_size, collate_fn=no_pad_collate, shuffle=True, num_workers=self.num_workers)
         return dataset_train
 
     def val_dataloader(self):
