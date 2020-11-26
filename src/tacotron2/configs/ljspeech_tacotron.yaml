@@ -1,4 +1,4 @@
-alphabet: "Nabcdefghijklmnopqrstuvwxyz!,;.? "
+alphabet: "SEabcdefghijklmnopqrstuvwxyz!,;.? "
 dataset:
   root: DB/LJspeech
   train_part: 0.95
@@ -16,7 +16,7 @@ train:
   train_log_period: 50
   val_log_period: 20
   trainer_args:
-    max_epochs: 20
+    max_epochs: 40
     gpus: 1
     gradient_clip_val: 10
 encoder:
