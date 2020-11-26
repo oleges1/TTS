@@ -185,7 +185,7 @@ class TacotronDecoder(nn.Module):
         self.attention_context, self.attention_weights = self.attention_layer(
             self.attention_hidden, encoder_out, self.processed_memory,
             attention_weights_cat, mask)
-        self.attention_weights_sum += self.attention_weights
+        self.attention_weights_sum = self.attention_weights_sum + self.attention_weights
 
         decoder_input = torch.cat(
             (self.attention_hidden, self.attention_context), dim=-1)
