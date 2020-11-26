@@ -57,7 +57,7 @@ class Tacotron2Trainer(pl.LightningModule):
     def guided_attention_loss(self, alignments):
         b, t, n = alignments.shape
         grid_t, grid_n = torch.meshgrid(torch.arange(t, device=alignments.device), torch.arange(n, device=alignments.device))
-        W = 1 - torch.exp(-(grid_n / n - grid_t/t) ** 2 / 2 / self.g**2)
+        W = torch.exp(-(-grid_n / n + grid_t/t) ** 2 / 2 / self.g**2)
         return torch.mean(alignments * W[None]), W
 
     def monotonic_attention_loss(self, alignments):

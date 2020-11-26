@@ -18,7 +18,7 @@ class LocationBlock(nn.Module):
             2, attention_n_filters, kernel_size=attention_kernel_size,
             padding=padding, bias=False, stride=1, dilation=1
         )
-        self.projection = nn.Linear(attention_n_filters, attention_dim, bias=False)
+        self.projection = Linears(attention_n_filters, attention_dim, bias=False, w_init_gain='tanh')
 
     def forward(self, attention_weights):
         output = self.conv(attention_weights).transpose(1, 2)
@@ -47,7 +47,7 @@ class LocationSensitiveAttention(nn.Module):
             attention_location_kernel_size,
             attention_dim
         )
-        self.score_mask_value = -float("inf")
+        self.score_mask_value = -1e20
 
     def get_alignment_energies(
         self,
