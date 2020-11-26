@@ -1,3 +1,4 @@
+import os
 import torch
 import wandb
 from torch import nn
@@ -158,6 +159,12 @@ class Tacotron2Trainer(pl.LightningModule):
             'avg_val_loss': avg_loss, 'avg_val_mse': avg_mse,
             'avg_gate_loss': avg_gate, 'avg_val_attn': avg_attn
         })
+        os.makedirs(self.config.train.get('checkpoint_path', 'checkpoints'), exist_ok=True)
+        torch.save(
+            self.model.state_dict(),
+            os.path.join(self.config.train.get('checkpoint_path', 'checkpoints'), f'model_{epoch_idx}.pth')
+        )
+        self.logger.experiment.save(os.path.join(self.config.train.get('checkpoint_path', 'checkpoints'), f'model_{epoch_idx}.pth'))
 
     def configure_optimizers(self):
         # REQUIRED
