@@ -116,7 +116,7 @@ class MelSpectrogram(nn.Module):
             # if self.training:
             #     mel = self.mask_spec(mel)
 
-            mels.append(mel[None])
+            mels.append(mel)
         data['mel'] = mels
         return data
 
