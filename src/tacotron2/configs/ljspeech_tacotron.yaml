@@ -1,4 +1,4 @@
-alphabet: "SEabcdefghijklmnopqrstuvwxyz!,;.? "
+alphabet: "SUEabcdefghijklmnopqrstuvwxyz!,;.? "
 dataset:
   root: DB/LJspeech
   train_part: 0.95
@@ -11,7 +11,6 @@ train:
   num_workers: 8
   trainer: Tacotron2Trainer
   use_guided_attention: True
-  use_monotonic_attention: False
   seed: 42
   train_log_period: 50
   val_log_period: 20

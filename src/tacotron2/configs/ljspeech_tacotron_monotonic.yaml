@@ -1,4 +1,4 @@
-alphabet: "SEabcdefghijklmnopqrstuvwxyz!,;.? "
+alphabet: "SUEabcdefghijklmnopqrstuvwxyz!,;.? "
 dataset:
   root: DB/LJspeech
   train_part: 0.95

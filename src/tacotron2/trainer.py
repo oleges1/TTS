@@ -123,8 +123,6 @@ class Tacotron2Trainer(pl.LightningModule):
         gate = self.gate_loss(gate_out, batch['mel_lengths'])
         if self.config.train.use_guided_attention:
             attn_loss, guide = self.guided_attention_loss(alignments)
-        elif self.config.train.use_monotonic_attention:
-            attn_loss = self.monotonic_attention_loss(alignments)
         loss = mse + gate + attn_loss
         if batch_nb % self.config.train.val_log_period == 1:
             examples = [
