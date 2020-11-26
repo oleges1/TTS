@@ -117,7 +117,7 @@ class MelSpectrogram(nn.Module):
             #     mel = self.mask_spec(mel)
 
             mels.append(mel[None])
-        data['mel'] = torch.cat(mels).permute(0, 2, 1)
+        data['mel'] = mels
         return data
 
 
