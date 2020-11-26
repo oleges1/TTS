@@ -92,7 +92,7 @@ class Tacotron2Trainer(pl.LightningModule):
                 wandb.Image(y[0].detach().cpu().numpy(), caption='target_mel'),
                 wandb.Image(alignments[0].detach().cpu().numpy(), caption='alignment')
             ]
-            self.logger.experiment.log({'input_texts' : wandb.Table(data=[
+            self.logger.experiment.log({'input_texts_train' : wandb.Table(data=[
                     self.text_transform.reverse(batch['text'][0].detach().cpu().numpy())], columns=["Text"])})
             if self.config.train.use_guided_attention:
                 examples.append(wandb.Image(guide.cpu().numpy(), caption='attention_guide'))
@@ -132,7 +132,7 @@ class Tacotron2Trainer(pl.LightningModule):
                 wandb.Image(y[0].cpu().numpy(), caption='target_mel'),
                 wandb.Image(alignments[0].cpu().numpy(), caption='alignment')
             ]
-            self.logger.experiment.log({'input_texts' : wandb.Table(data=[
+            self.logger.experiment.log({'input_texts_val' : wandb.Table(data=[
                     self.text_transform.reverse(batch['text'][0].cpu().numpy())], columns=["Text"])})
             self.logger.experiment.log({
                 "plots_val": examples
