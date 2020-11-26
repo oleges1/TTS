@@ -44,6 +44,7 @@ class Tacotron2Trainer(pl.LightningModule):
             self.vocoder = None
         self.config = config
         self.sample_rate = config.dataset.get('sample_rate', 16000)
+        self.epoch_idx = 0
 
     def forward(self, batch):
         if self.training:
@@ -162,9 +163,10 @@ class Tacotron2Trainer(pl.LightningModule):
         os.makedirs(self.config.train.get('checkpoint_path', 'checkpoints'), exist_ok=True)
         torch.save(
             self.model.state_dict(),
-            os.path.join(self.config.train.get('checkpoint_path', 'checkpoints'), f'model_{epoch_idx}.pth')
+            os.path.join(self.config.train.get('checkpoint_path', 'checkpoints'), f'model_{self.epoch_idx}.pth')
         )
-        self.logger.experiment.save(os.path.join(self.config.train.get('checkpoint_path', 'checkpoints'), f'model_{epoch_idx}.pth'))
+        self.logger.experiment.save(os.path.join(self.config.train.get('checkpoint_path', 'checkpoints'), f'model_{self.epoch_idx}.pth'))
+        self.epoch_idx += 1
 
     def configure_optimizers(self):
         # REQUIRED
