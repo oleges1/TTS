@@ -73,7 +73,7 @@ class Tacotron2Trainer(pl.LightningModule):
     def training_step(self, batch, batch_nb):
         # REQUIRED
         batch = self.mel(self.gpu(batch))
-        batch = self.preprocces(batch)
+        batch = self.preprocess(batch)
         batch['mel'] = batch['mel'].permute(0, 2, 1)
         mel_outputs, mel_outputs_postnet, gate_out, alignments = self(batch)
         y = batch['mel']
@@ -109,7 +109,7 @@ class Tacotron2Trainer(pl.LightningModule):
     def validation_step(self, batch, batch_nb):
         # OPTIONAL
         batch = self.mel(self.gpu(batch))
-        batch = self.preprocces(batch)
+        batch = self.preprocess(batch)
         batch['mel'] = batch['mel'].permute(0, 2, 1)
         mel_outputs, mel_outputs_postnet, gate_out, alignments = self(batch)
         y = batch['mel'][:, :mel_outputs.shape[1]]
