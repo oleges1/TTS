@@ -6,7 +6,7 @@ dataset:
   sample_rate: 22050
 train:
   lr: 1.e-4
-  batch_size: 8
+  batch_size: 32
   trainer: Tacotron2Trainer
   use_guided_attention: True
   use_monotonic_attention: False
