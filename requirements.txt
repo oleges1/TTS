@@ -11,3 +11,4 @@ wandb
 pyyaml
 easydict
 googledrivedownloader
+soundfile

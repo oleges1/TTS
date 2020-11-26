@@ -44,7 +44,7 @@ class ZoneOutCell(nn.Module):
                 if not isinstance(prob, tuple):
                     prob = tuple([prob] * num_h)
                 return tuple([zoneout(h[i], next_h[i], prob[i]) for i in range(num_h)])
-            mask = h.new_tensor(h.size()).bernoulli_(prob)
+            mask = torch.empty_like(h).bernoulli_(prob)
             return mask * next_h + (1 - mask) * h
 
         next_hidden = self.cell(inputs, hidden)

@@ -34,9 +34,9 @@ class Tacotron2(nn.Module):
         if output_lengths is not None:
             batch_size, max_length, hidden_size = mels.shape
             mask = torch.arange(max_length, device=output_lengths.device,
-                            dtype=output_lengths.dtype)[None, :] < length[:, None]
+                            dtype=output_lengths.dtype)[None, :] < output_lengths[:, None]
 
-            mel_outputs.data.masked_fill_(mask, self.pad_value)
-            mel_outputs_postnet.data.masked_fill_(mask, self.pad_value)
-            gate_outputs.data.masked_fill_(mask[:, 0, :], self.pad_value)
+            mel_outputs.data.masked_fill_(mask[..., None], self.pad_value)
+            mel_outputs_postnet.data.masked_fill_(mask[..., None], self.pad_value)
+            gate_outputs.data.masked_fill_(mask, self.pad_value)
         return mel_outputs, mel_outputs_postnet, gate_outputs, alignments

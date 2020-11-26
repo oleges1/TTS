@@ -177,7 +177,7 @@ class ToGpu:
         self.device = device
 
     def __call__(self, data):
-        data = {k: torch.from_numpy(np.array([item for item in v])).to(self.device) for k, v in data.items()}
+        data = {k: [torch.from_numpy(np.array(item)).to(self.device) for item in v] for k, v in data.items()}
         return data
 
 class Pad:
