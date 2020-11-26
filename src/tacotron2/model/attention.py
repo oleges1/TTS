@@ -151,7 +151,7 @@ class MonotonicLocationSensitiveAttention(LocationSensitiveAttention):
                     # fill inplace:
                     alignment = alignment.data.masked_fill_(mask, self.score_mask_value)
 
-                p_select = self.sigmoid(alignment + self.gaussian_noise(alignment)))
+                p_select = self.sigmoid(alignment + self.gaussian_noise(alignment))
                 cumprod_1_minus_p = self.safe_cumprod(1 - p_select)
                 alpha = p_select * cumprod_1_minus_p * \
                     torch.cumsum(previous_alpha / cumprod_1_minus_p, dim=1)
