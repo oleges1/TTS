@@ -16,6 +16,7 @@ if __name__ == '__main__':
     pl_model = getattr(trainers, config.train.trainer)(config, Vocoder=Vocoder)
     wandb_logger = WandbLogger(name='final_kiss', project=os.basename(args.config).split('.')[0], log_model=True)
     wandb_logger.log_hyperparams(config)
+    wandb_logger.watch(pl_model, log='all', log_freq=100)
     trainer = pl.Trainer(logger=wandb_logger,
         **config.train.trainer_args)
     trainer.fit(pl_model)
