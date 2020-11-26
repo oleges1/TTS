@@ -157,11 +157,11 @@ class TacotronDecoder(nn.Module):
 
     def init_states(self, encoder_out):
         batch_size, max_length, hidden_size = encoder_out.shape
-        self.attention_hidden = torch.zeros((batch_size, self.attention_rnn_dim), dtype=encoder_out.dtype, device=encoder_out.device)
-        self.decoder_hidden = torch.zeros((batch_size, self.decoder_rnn_dim), dtype=encoder_out.dtype, device=encoder_out.device)
-        self.attention_context = torch.zeros((batch_size, self.encoder_embedding_dim), dtype=encoder_out.dtype, device=encoder_out.device)
-        self.attention_weights = torch.zeros((batch_size, max_length), dtype=encoder_out.dtype, device=encoder_out.device)
-        self.attention_weights_sum = torch.zeros((batch_size, max_length), dtype=encoder_out.dtype, device=encoder_out.device)
+        self.attention_hidden = torch.zeros((batch_size, self.attention_rnn_dim), dtype=encoder_out.dtype, device=encoder_out.device, requires_grad=True)
+        self.decoder_hidden = torch.zeros((batch_size, self.decoder_rnn_dim), dtype=encoder_out.dtype, device=encoder_out.device, requires_grad=True)
+        self.attention_context = torch.zeros((batch_size, self.encoder_embedding_dim), dtype=encoder_out.dtype, device=encoder_out.device, requires_grad=True)
+        self.attention_weights = torch.zeros((batch_size, max_length), dtype=encoder_out.dtype, device=encoder_out.device, requires_grad=True)
+        self.attention_weights_sum = torch.zeros((batch_size, max_length), dtype=encoder_out.dtype, device=encoder_out.device, requires_grad=True)
         self.processed_memory = self.attention_layer.memory(encoder_out)
 
 
@@ -169,11 +169,11 @@ class TacotronDecoder(nn.Module):
         batch_size, max_length, hidden_size = encoder_out.shape
         if mels is not None:
             decoder_inputs = torch.cat([
-                torch.zeros((batch_size, 1, self.n_mel_channels), dtype=encoder_out.dtype, device=encoder_out.device),
+                torch.zeros((batch_size, 1, self.n_mel_channels), dtype=encoder_out.dtype, device=encoder_out.device, requires_grad=True),
                 mels
             ], dim=1)
         else:
-            decoder_inputs = torch.zeros((batch_size, 1, self.n_mel_channels), dtype=encoder_out.dtype, device=encoder_out.device)
+            decoder_inputs = torch.zeros((batch_size, 1, self.n_mel_channels), dtype=encoder_out.dtype, device=encoder_out.device, requires_grad=True)
         return decoder_inputs
 
     def step(self, state, encoder_out, mask):
