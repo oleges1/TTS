@@ -52,7 +52,7 @@ class Vocoder(nn.Module):
             audio = self.net.convinv[k](audio, reverse=True)
 
             if k % self.net.n_early_every == 0 and k > 0:
-                z = torch.randn(spect.size(0), self.net.n_early_size, spect.size(2))
+                z = torch.randn(spect.size(0), self.net.n_early_size, spect.size(2)).to(spect.device)
                 audio = torch.cat((z, audio), 1)
 
         audio = audio.permute(0, 2, 1) \

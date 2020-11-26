@@ -146,11 +146,15 @@ class AudioSqueeze:
 class TextPreprocess:
     def __init__(self, alphabet='N!,;.? '):
         self.alphabet = alphabet
-        self.sym2id = {i: a for i, a in enumerate(alphabet)}
+        self.sym2id = {a: i for i, a in enumerate(alphabet)}
+        self.id2sym = {i: a for i, a in enumerate(alphabet)}
 
     def __call__(self, data):
         data['text'] = list(map(lambda x: self.sym2id.get(x, 0), list(data['text'].lower().strip())))
         return data
+
+    def reverse(self, vector):
+        return sum(self.id2sym[x] for x in vector)
 
 class ToNumpy:
     """

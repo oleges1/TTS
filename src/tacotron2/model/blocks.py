@@ -205,7 +205,7 @@ class TacotronDecoder(nn.Module):
                             dtype=length.dtype)[None, :] < length[:, None]
         else:
             mask = None
-        self.init_states(encoder_out, mels)
+        self.init_states(encoder_out)
 
         mel_outputs, gate_outputs, alignments = [], [], []
         while True:
@@ -221,7 +221,7 @@ class TacotronDecoder(nn.Module):
             alignments.append(attention_weights.unsqueeze(1))
             if (
                 (mels is not None and len(mel_outputs) == mels.shape[1]) or
-                (mels is None and predicted_gate.item() > self.gate_thr)
+                (mels is None and (predicted_gate.item() > self.gate_thr or len(mel_outputs) > 5 * max_length))
             ):
                 break
         # parse outputs:

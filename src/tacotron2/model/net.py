@@ -25,7 +25,7 @@ class Tacotron2(nn.Module):
             mels=None,
             output_lengths=None
         ):
-        embedded_inputs = self.embedding(text_inputs).transpose(1, 2)
+        embedded_inputs = self.embedding(text_inputs)
         encoder_outputs = self.encoder(embedded_inputs)
         mel_outputs, gate_outputs, alignments = self.decoder(
             encoder_outputs, mels=mels, lengths=lengths)
