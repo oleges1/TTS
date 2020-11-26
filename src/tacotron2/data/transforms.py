@@ -154,7 +154,7 @@ class TextPreprocess:
         return data
 
     def reverse(self, vector):
-        return sum(self.id2sym[x] for x in vector)
+        return ''.join([self.id2sym[x] for x in vector])
 
 class ToNumpy:
     """

@@ -41,6 +41,7 @@ class Tacotron2Trainer(pl.LightningModule):
         else:
             self.vocoder = None
         self.config = config
+        self.sample_rate = config.dataset.get('sample_rate', 16000)
 
     def forward(self, batch):
         if self.training:
@@ -94,14 +95,14 @@ class Tacotron2Trainer(pl.LightningModule):
                 wandb.Image(mel_outputs_postnet[0].cpu().numpy(), caption='predicted_mel'),
                 wandb.Image(y[0].cpu().numpy(), caption='target_mel'),
                 wandb.Image(alignments[0].cpu().numpy(), caption='alignment'),
-                wandb.Table(data=[self.text_transform.reverse(batch['text'][0].cpu().numpy())], columns=["Text"])}
+                wandb.Table(data=[self.text_transform.reverse(batch['text'][0].cpu().numpy())], columns=["Text"])
             ]
             if self.config.train.use_guided_attention:
                 examples.append(wandb.Image(guide.cpu().numpy(), caption='attention_guide'))
             if self.vocoder is not None:
                 reconstructed_wav = self.vocoder.inference(mel_outputs_postnet[0].permute(1, 0)[None])
-                examples.append(wandb.Audio(reconstructed_wav.cpu().numpy(), caption='reconstructed_wav'))
-                examples.append(wandb.Audio(batch['audio'][0].cpu().numpy(), caption='target_wav'))
+                examples.append(wandb.Audio(reconstructed_wav.cpu().numpy(), caption='reconstructed_wav', sample_rate=self.sample_rate))
+                examples.append(wandb.Audio(batch['audio'][0].cpu().numpy(), caption='target_wav', sample_rate=self.sample_rate))
             self.logger.experiment.log({
                 "examples_train": examples
             })
@@ -127,12 +128,12 @@ class Tacotron2Trainer(pl.LightningModule):
                 wandb.Image(mel_outputs_postnet[0].cpu().numpy(), caption='predicted_mel'),
                 wandb.Image(y[0].cpu().numpy(), caption='target_mel'),
                 wandb.Image(alignments[0].cpu().numpy(), caption='alignment'),
-                wandb.Table(data=[self.text_transform.reverse(batch['text'][0].cpu().numpy())], columns=["Text"])}
+                wandb.Table(data=[self.text_transform.reverse(batch['text'][0].cpu().numpy())], columns=["Text"])
             ]
             if self.vocoder is not None:
                 reconstructed_wav = self.vocoder.inference(mel_outputs_postnet[0].permute(1, 0)[None])
-                examples.append(wandb.Audio(reconstructed_wav.cpu().numpy(), caption='reconstructed_wav'))
-                examples.append(wandb.Audio(batch['audio'][0].cpu().numpy(), caption='target_wav'))
+                examples.append(wandb.Audio(reconstructed_wav.cpu().numpy(), caption='reconstructed_wav', sample_rate=self.sample_rate))
+                examples.append(wandb.Audio(batch['audio'][0].cpu().numpy(), caption='target_wav', sample_rate=self.sample_rate))
             self.logger.experiment.log({
                 "examples_val": exmaples
             })
