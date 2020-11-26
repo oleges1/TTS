@@ -14,7 +14,8 @@ if __name__ == '__main__':
     with open(args.config, 'r') as stream:
         config = edict(yaml.safe_load(stream))
     pl_model = getattr(trainers, config.train.trainer)(config, Vocoder=Vocoder)
-    wandb_logger = WandbLogger(name='final_kiss',project=os.basename(args.config).split('.')[0], log_model=True)
+    wandb_logger = WandbLogger(name='final_kiss', project=os.basename(args.config).split('.')[0], log_model=True)
+    wandb_logger.log_hyperparams(config)
     trainer = pl.Trainer(logger=wandb_logger,
         **config.train.trainer_args)
     trainer.fit(pl_model)

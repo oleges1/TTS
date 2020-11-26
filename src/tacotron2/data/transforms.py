@@ -116,8 +116,8 @@ class MelSpectrogram(nn.Module):
             # if self.training:
             #     mel = self.mask_spec(mel)
 
-            mels.append(mel)
-        data['mel'] = mels
+            mels.append(mel[None])
+        data['mel'] = torch.cat(mels).permute(0, 2, 1)
         return data
 
 
@@ -164,7 +164,7 @@ class ToNumpy:
 class AddLengths:
     def __call__(self, data):
         data['audio_lengths'] = torch.tensor([item.shape[-1] for item in data['audio']]).to(data['audio'][0].device)
-        data['mel_lengths'] = torch.tensor([item.shape[-1] for item in data['mel']]).to(data['mel'][0].device)
+        data['mel_lengths'] = torch.tensor([item.shape[0] for item in data['mel']]).to(data['mel'][0].device)
         data['text_lengths'] = torch.tensor([item.shape[0] for item in data['text']]).to(data['text'][0].device)
         return data
 
@@ -173,7 +173,7 @@ class ToGpu:
         self.device = device
 
     def __call__(self, data):
-        data = {k: [torch.from_numpy(np.array(item)).to(self.device) for item in v] for k, v in data.items()}
+        data = {k: torch.from_numpy(np.array([item for item in v])).to(self.device) for k, v in data.items()}
         return data
 
 class Pad:

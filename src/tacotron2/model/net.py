@@ -7,9 +7,6 @@ from tacotron2.data.transforms import MelSpectrogramConfig
 class Tacotron2(nn.Module):
     def __init__(self, config):
         super(Tacotron2, self).__init__()
-        # self.mask_padding = hparams.mask_padding
-        # self.n_mel_channels = hparams.n_mel_channels
-        # self.n_frames_per_step = hparams.n_frames_per_step
         self.embedding = nn.Embedding(
             len(config.alphabet), config.encoder.in_channels)
         std = sqrt(2.0 / (len(config.alphabet) + config.encoder.in_channels))
@@ -29,7 +26,6 @@ class Tacotron2(nn.Module):
             output_lengths=None
         ):
         embedded_inputs = self.embedding(text_inputs).transpose(1, 2)
-        print(embedded_inputs.shape)
         encoder_outputs = self.encoder(embedded_inputs)
         mel_outputs, gate_outputs, alignments = self.decoder(
             encoder_outputs, mels=mels, lengths=lengths)

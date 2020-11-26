@@ -5,7 +5,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 from tacotron2.data.ljspeech import get_dataset
 from tacotron2.data.transforms import (
-    MelSpectrogram, Compose, AddLengths, Pad, 
+    MelSpectrogram, Compose, AddLengths, Pad,
     TextPreprocess, ToNumpy, AudioSqueeze, ToGpu)
 from tacotron2.data.collate import no_pad_collate
 from tacotron2.model.net import Tacotron2
@@ -43,7 +43,6 @@ class Tacotron2Trainer(pl.LightningModule):
         self.config = config
 
     def forward(self, batch):
-        batch = self.mel(self.gpu(batch))
         if self.training:
             batch = self.train_preprocess(batch)
         else:
@@ -60,8 +59,8 @@ class Tacotron2Trainer(pl.LightningModule):
                 text_inputs=batch['text'])
 
     def guided_attention_loss(self, alignments):
-        b, n, t = alignments.shape
-        grid_n, grid_t = torch.meshgrid(torch.arange(n), torch.arange(t))
+        b, t, n = alignments.shape
+        grid_t, grid_n = torch.meshgrid(torch.arange(t, device=alignments.device), torch.arange(n, device=alignments.device))
         W = 1 - torch.exp(-(grid_n / n - grid_t/t) ** 2 / 2 / g**2)
         return torch.mean(alignments * W[None]), W
 
@@ -70,13 +69,14 @@ class Tacotron2Trainer(pl.LightningModule):
         return 0
 
     def gate_loss(self, gate_out, mel_lengths):
-        gate_target = torch.zeros(gate_out.shape, dtype='float32', device=mel_lengths.device)
+        gate_target = torch.zeros_like(gate_out)
         for i in range(gate_out.shape[0]):
             gate_target[i, mel_lengths[i]:] = 1
         return self.gate_bce(gate_out, gate_target)
 
     def training_step(self, batch, batch_nb):
         # REQUIRED
+        batch = self.mel(self.gpu(batch))
         mel_outputs, mel_outputs_postnet, gate_outputs, alignments = self(batch)
         y = batch['mel']
         train_mse = self.mseloss(mel_outputs, y) + self.mseloss(mel_outputs_postnet, y)
@@ -93,13 +93,12 @@ class Tacotron2Trainer(pl.LightningModule):
             examples = [
                 wandb.Image(mel_outputs_postnet[0].cpu().numpy(), caption='predicted_mel'),
                 wandb.Image(y[0].cpu().numpy(), caption='target_mel'),
-                wandb.Image(alignments[0].cpu().numpy(), caption='alignment'),
-                wandb.Image(gate_out[0].cpu().numpy(), caption='gate')
+                wandb.Image(alignments[0].cpu().numpy(), caption='alignment')
             ]
             if self.config.train.use_guided_attention:
                 examples.append(wandb.Image(guide.cpu().numpy(), caption='attention_guide'))
             if self.vocoder is not None:
-                reconstructed_wav = self.vocoder.inference(mel_outputs_postnet[0])
+                reconstructed_wav = self.vocoder.inference(mel_outputs_postnet[0].permute(1, 0))
                 examples.append(wandb.Audio(reconstructed_wav.cpu().numpy(), caption='reconstructed_wav'))
                 examples.append(wandb.Audio(batch['audio'][0].cpu().numpy(), caption='target_wav'))
             self.logger.experiment.log({
@@ -110,8 +109,11 @@ class Tacotron2Trainer(pl.LightningModule):
 
     def validation_step(self, batch, batch_nb):
         # OPTIONAL
+        batch = self.mel(self.gpu(batch))
         mel_outputs, mel_outputs_postnet, gate_outputs, alignments = self(batch)
-        y = batch['mel']
+        y = batch['mel'][:, :mel_outputs.shape[1]]
+        mel_outputs = mel_outputs[:, :y.shape[1]]
+        mel_outputs_postnet = mel_outputs_postnet[:, :y.shape[1]]
         mse = self.mseloss(mel_outputs, y) + self.mseloss(mel_outputs_postnet, y)
         gate = self.gate_loss(gate_out, batch['mel_lengths'])
         if self.config.train.use_guided_attention:
@@ -123,11 +125,10 @@ class Tacotron2Trainer(pl.LightningModule):
             exmaples = [
                 wandb.Image(mel_outputs_postnet[0].cpu().numpy(), caption='predicted_mel'),
                 wandb.Image(y[0].cpu().numpy(), caption='target_mel'),
-                wandb.Image(alignments[0].cpu().numpy(), caption='alignment'),
-                wandb.Image(gate_out[0].cpu().numpy(), caption='gate')
+                wandb.Image(alignments[0].cpu().numpy(), caption='alignment')
             ]
             if self.vocoder is not None:
-                reconstructed_wav = self.vocoder.inference(mel_outputs_postnet[0])
+                reconstructed_wav = self.vocoder.inference(mel_outputs_postnet[0].permute(1, 0))
                 examples.append(wandb.Audio(reconstructed_wav.cpu().numpy(), caption='reconstructed_wav'))
                 examples.append(wandb.Audio(batch['audio'][0].cpu().numpy(), caption='target_wav'))
             self.logger.experiment.log({

@@ -40,7 +40,7 @@ class LocationSensitiveAttention(nn.Module):
 
         self.query = Linears(attention_rnn_dim, attention_dim, bias=False, w_init_gain='tanh')
         self.memory = Linears(embedding_dim, attention_dim, bias=False, w_init_gain='tanh')
-        self.b = Linears(attention_dim, 1, bias=False)
+        self.v = Linears(attention_dim, 1, bias=False)
         self.location_layer = LocationBlock(
             attention_location_n_filters,
             attention_location_kernel_size,
@@ -59,7 +59,7 @@ class LocationSensitiveAttention(nn.Module):
         processed_memory: processed encoder outputs (B, T_in, attention_dim)
         attention_weights_cat: cumulative and prev. att weights (B, 2, max_time)
         """
-        processed_query = self.query_layer(query.unsqueeze(1))
+        processed_query = self.query(query.unsqueeze(1))
         processed_attention_weights = self.location_layer(attention_weights_cat)
 
         energies = self.v(torch.tanh(

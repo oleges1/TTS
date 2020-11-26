@@ -57,6 +57,7 @@ class CRNNEncoder(nn.Module):
       if self.cnn_net is not None:
           input = self.cnn_net(input.permute(0, 2, 1)).permute(0, 2, 1)
       output, h = self.rnn(input, last_h)
+      # B, T, H
       return output
 
 
@@ -80,7 +81,7 @@ class Postnet(nn.Module):
                             bias=(i == num_layers - 1)))
             torch.nn.init.xavier_uniform_(
                 layers[-1].weight, gain=torch.nn.init.calculate_gain('tanh'))
-            layers.append(nn.BatchNorm1d(embedding_dim))
+            layers.append(nn.BatchNorm1d(out_channels))
             if (i != num_layers - 1):
                 layers.append(nn.Tanh())
             layers.append(nn.Dropout(p=dropout_prob))
@@ -91,7 +92,8 @@ class Postnet(nn.Module):
 
 
     def forward(self, x):
-        x = self.net(x)
+        # x: B, T, H
+        x = self.net(x.permute(0, 2, 1)).permute(0, 2, 1)
         return x
 
 
@@ -110,7 +112,8 @@ class TacotronDecoder(nn.Module):
         attention_location_kernel_size=31,
         teacher_forcing_ratio=1.,
         dropout_prob=0.5,
-        zoneout_prob=0.1
+        zoneout_prob=0.1,
+        gate_thr=0.5
     ):
         super(TacotronDecoder, self).__init__()
         self.prenet = Linears(n_mel_channels, prenet_dim,
@@ -124,7 +127,7 @@ class TacotronDecoder(nn.Module):
         self.attention_rnn_dim = attention_rnn_dim
         self.decoder_rnn = ZoneOutCell(
             nn.GRUCell(
-                input_size=prenet_dim + encoder_embedding_dim,
+                input_size=attention_rnn_dim + encoder_embedding_dim,
                 hidden_size=decoder_rnn_dim
             ), zoneout_prob=zoneout_prob)
         self.decoder_rnn_dim = decoder_rnn_dim
@@ -141,6 +144,7 @@ class TacotronDecoder(nn.Module):
         self.teacher_forcing_ratio = teacher_forcing_ratio
         self.dropout_prob = dropout_prob
         self.n_mel_channels = n_mel_channels
+        self.gate_thr = gate_thr
 
 
     def init_states(self, encoder_out):
@@ -153,12 +157,15 @@ class TacotronDecoder(nn.Module):
         self.processed_memory = self.attention_layer.memory(encoder_out)
 
 
-    def append_first_frame(self, encoder_out):
+    def append_first_frame(self, encoder_out, mels):
         batch_size, max_length, hidden_size = encoder_out.shape
-        decoder_inputs = torch.cat([
-            torch.zeros((batch_size, 1, hidden_size), dtype=encoder_out.dtype, device=encoder_out.device),
-            encoder_out
-        ], dim=1)
+        if mels is not None:
+            decoder_inputs = torch.cat([
+                torch.zeros((batch_size, 1, self.n_mel_channels), dtype=encoder_out.dtype, device=encoder_out.device),
+                mels
+            ], dim=1)
+        else:
+            decoder_inputs = torch.zeros((batch_size, 1, self.n_mel_channels), dtype=encoder_out.dtype, device=encoder_out.device)
         return decoder_inputs
 
     def step(self, state, encoder_out, mask):
@@ -190,39 +197,35 @@ class TacotronDecoder(nn.Module):
         lengths=None,  # None for inference
         mels=None
     ):
-        if mels is not None:
-            assert mels.shape == encoder_out.shape, str(mels.shape) + '- mels, encoder_out-' + str(encoder_out.shape)
-            if self.teacher_forcing_ratio != 1:
-                mels[:int((1 - self.teacher_forcing_ratio) * len(mels))] = encoder_out[:int((1 - self.teacher_forcing_ratio) * len(mels))]
-            decoder_inputs = self.append_first_frame(mels)
-        else:
-            decoder_inputs = self.append_first_frame(encoder_out)
-
-        batch_size, max_length, hidden_size = decoder_input.shape
+        decoder_inputs = self.append_first_frame(encoder_out, mels)
+        batch_size, max_length, _ = encoder_out.shape
         if lengths is not None:
+            batch_size, max_length, _ = encoder_out.shape
             mask = torch.arange(max_length, device=lengths.device,
                             dtype=length.dtype)[None, :] < length[:, None]
         else:
             mask = None
-        self.init_states(encoder_out)
+        self.init_states(encoder_out, mels)
 
         mel_outputs, gate_outputs, alignments = [], [], []
-        while len(mel_outputs) < decoder_inputs.size(0) - 1:
+        while True:
+            if (len(mel_outputs) == 0) or (mels is not None and torch.rand(1) < self.teacher_forcing_ratio):
+                decoder_input = decoder_inputs[:, len(mel_outputs)]
+            else:
+                decoder_input = mel_outputs[-1][:, 0]
+            decoder_input = self.prenet(decoder_input)
             predicted_mel, predicted_gate, attention_weights = self.step(
-                decoder_inputs[:, len(mel_outputs)], encoder_out, mask)
-            mel_outputs.append(predicted_mel.squeeze(1))
-            gate_outputs.append(predicted_gate.squeeze(1))
-            alignments.append(attention_weights)
+                decoder_input, encoder_out, mask)
+            mel_outputs.append(predicted_mel.unsqueeze(1))
+            gate_outputs.append(predicted_gate)
+            alignments.append(attention_weights.unsqueeze(1))
+            if (
+                (mels is not None and len(mel_outputs) == mels.shape[1]) or
+                (mels is None and predicted_gate.item() > self.gate_thr)
+            ):
+                break
         # parse outputs:
-        # (T_out, B) -> (B, T_out)
-        alignments = torch.stack(alignments).transpose(0, 1)
-        # (T_out, B) -> (B, T_out)
-        gate_outputs = torch.stack(gate_outputs).transpose(0, 1).contiguous()
-        # (T_out, B, n_mel_channels) -> (B, T_out, n_mel_channels)
-        mel_outputs = torch.stack(mel_outputs).transpose(0, 1).contiguous()
-        # decouple frames per step
-        mel_outputs = mel_outputs.view(
-            batch_size, max_length, self.n_mel_channels)
-        # (B, T_out, n_mel_channels) -> (B, n_mel_channels, T_out)
-        mel_outputs = mel_outputs.transpose(1, 2)
+        alignments = torch.cat(alignments, dim=1)     # B, T, H
+        gate_outputs = torch.cat(gate_outputs, dim=1) # B, T
+        mel_outputs = torch.cat(mel_outputs, dim=1)   # B, T, H
         return mel_outputs, gate_outputs, alignments

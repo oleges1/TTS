@@ -37,6 +37,7 @@ decoder:
   teacher_forcing_ratio: 1.
   dropout_prob: 0.5
   zoneout_prob: 0.1
+  gate_thr: 0.5
 postnet:
   n_mel_channels: 80
   embedding_dim: 512

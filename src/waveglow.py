@@ -1,5 +1,5 @@
 import sys
-sys.path.append('src/waveglow/')
+sys.path.append('waveglow/')
 
 import warnings
 warnings.filterwarnings('ignore')
