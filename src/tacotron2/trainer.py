@@ -63,14 +63,15 @@ class Tacotron2Trainer(pl.LightningModule):
         if self.training:
             y = batch['mel']
             y.requires_grad = False
-            batch_size, max_length, hidden_size = y.shape
+            batch_size, max_length, n_mel_channels = y.shape
             output_lengths = batch['mel_lengths']
             mask = torch.arange(max_length, device=output_lengths.device,
                             dtype=output_lengths.dtype)[None, :] < output_lengths[:, None]
             mask = mask.bool()
+            mask = mask[..., None].repeat_interleave_(n_mel_channels, dim=2)
             mask.requires_grad = False
-            return self.mseloss(mel_outputs * mask[..., None], y * mask[..., None]) + self.mseloss(
-                        mel_outputs_postnet * mask[..., None], y * mask[..., None])
+            return self.mseloss(mel_outputs * mask,  y * mask) + self.mseloss(
+                        mel_outputs_postnet * mask, y * mask)
         else:
             y = batch['mel'][:, :mel_outputs.shape[1]]
             mel_outputs = mel_outputs[:, :y.shape[1]]
