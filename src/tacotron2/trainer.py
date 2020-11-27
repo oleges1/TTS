@@ -10,7 +10,7 @@ from tacotron2.data.transforms import (
     TextPreprocess, ToNumpy, AudioSqueeze, ToGpu)
 from tacotron2.data.collate import no_pad_collate
 from tacotron2.model.net import Tacotron2
-from tacotron2.utils import fix_seeds, learning_rate_decay
+from tacotron2.utils import fix_seeds
 
 
 class Tacotron2Trainer(pl.LightningModule):
