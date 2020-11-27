@@ -230,7 +230,7 @@ class TacotronDecoder(nn.Module):
             alignments.append(attention_weights.unsqueeze(1))
             if (
                 (mels is not None and len(mel_outputs) == mels.shape[1]) or
-                (mels is None and (torch.sigmoid(predicted_gate).item() > self.gate_thr or len(mel_outputs) > 5 * max_length))
+                (mels is None and (torch.sigmoid(predicted_gate).item() > self.gate_thr or len(mel_outputs) > 20 * max_length))
             ):
                 break
         # parse outputs:
