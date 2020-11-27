@@ -122,10 +122,7 @@ class MonotonicLocationSensitiveAttention(LocationSensitiveAttention):
         * PyTorch: https://discuss.pytorch.org/t/cumprod-exclusive-true-equivalences/2614
         """
         batch_size, sequence_length = x.size()
-        if torch.cuda.is_available():
-            one_x = torch.cat([torch.ones(batch_size, 1).cuda(), x], dim=1)[:, :-1]
-        else:
-            one_x = torch.cat([torch.ones(batch_size, 1), x], dim=1)[:, :-1]
+        one_x = torch.cat([torch.ones((batch_size, 1), device=x.device), x], dim=1)[:, :-1]
         return torch.cumprod(one_x, dim=1)
 
     def forward(
@@ -139,10 +136,8 @@ class MonotonicLocationSensitiveAttention(LocationSensitiveAttention):
         prev_attention = attention_weights_cat[:, 0]
         if attention_weights_cat.sum() == 0:
             # first step
-            alpha = torch.empty_like(prev_attention, requires_grad=True)
-            alpha[:] = 0.
-            alpha[:, 0] = 1.
-            attention_weights = alpha
+            attention_weights = torch.zeros_like(prev_attention)
+            attention_weights[:, 0] = 1.
         else:
             alignment = super().get_alignment_energies(
                     attention_hidden_state, processed_memory, attention_weights_cat
@@ -157,12 +152,10 @@ class MonotonicLocationSensitiveAttention(LocationSensitiveAttention):
                 p_select = self.sigmoid(alignment)
                 log_cumprod_1_minus_p = self.log_safe_cumprod(1 - p_select)
                 log_attention_weights_prev = torch.log(torch.clamp(prev_attention, min=1e-10))
-                alpha = p_select * torch.exp(log_cumprod_1_minus_p) * torch.cumsum(torch.exp(log_attention_weights_prev - log_cumprod_1_minus_p), dim=1)
-
-                attention_weights = alpha
+                attention_weights = p_select * torch.exp(log_cumprod_1_minus_p) * torch.cumsum(torch.exp(log_attention_weights_prev - log_cumprod_1_minus_p), dim=1)
             else:
                 # hard:
-                above_threshold = (alignment > 0).float()
+                above_threshold = (alignment > 0).float() # zero because sigmoid!
 
                 p_select = above_threshold * torch.cumsum(prev_attention, dim=1)
                 attention = p_select * self.exclusive_cumprod(1 - p_select)
