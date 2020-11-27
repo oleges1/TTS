@@ -211,7 +211,7 @@ class TacotronDecoder(nn.Module):
             batch_size, max_length, _ = encoder_out.shape
             mask = torch.arange(max_length, device=lengths.device,
                             dtype=lengths.dtype)[None, :] < lengths[:, None]
-            mask = mask.bool()
+            mask = ~(mask.bool())
         else:
             mask = None
         self.init_states(encoder_out)

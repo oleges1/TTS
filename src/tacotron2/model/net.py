@@ -35,7 +35,7 @@ class Tacotron2(nn.Module):
             batch_size, max_length, hidden_size = mels.shape
             mask = torch.arange(max_length, device=output_lengths.device,
                             dtype=output_lengths.dtype)[None, :] < output_lengths[:, None]
-
+            mask = ~(mask.bool())
             mel_outputs.data.masked_fill_(mask[..., None], self.pad_value)
             mel_outputs_postnet.data.masked_fill_(mask[..., None], self.pad_value)
             gate_outputs.data.masked_fill_(mask, 1e3)

@@ -112,9 +112,9 @@ class MonotonicLocationSensitiveAttention(LocationSensitiveAttention):
         """Additive gaussian nosie to encourage discreteness"""
         return torch.empty_like(tensor_like).normal_()
 
-    def safe_cumprod(self, x):
+    def log_safe_cumprod(self, x):
         """Numerically stable cumulative product by cumulative sum in log-space"""
-        return torch.exp(torch.cumsum(torch.log(torch.clamp(x, min=1e-10, max=1)), dim=1))
+        return torch.cumsum(torch.log(torch.clamp(x, min=1e-10, max=1)), dim=1)
 
     def exclusive_cumprod(self, x):
         """Exclusive cumulative product [a, b, c] => [1, a, a * b]
@@ -140,7 +140,7 @@ class MonotonicLocationSensitiveAttention(LocationSensitiveAttention):
             # first step
             alpha = torch.zeros_like(attention_weights_cat[:, 0], requires_grad=True)
             alpha[:, 0] = 1.
-            return alpha
+            attention_weights = alpha
         else:
             alignment = super().get_alignment_energies(
                     attention_hidden_state, processed_memory, attention_weights_cat
@@ -152,10 +152,11 @@ class MonotonicLocationSensitiveAttention(LocationSensitiveAttention):
                     alignment = alignment.data.masked_fill_(mask, self.score_mask_value)
 
                 p_select = self.sigmoid(alignment + self.gaussian_noise(alignment))
-                cumprod_1_minus_p = self.safe_cumprod(1 - p_select)
-                alpha = p_select * cumprod_1_minus_p * \
-                    torch.cumsum(previous_alpha / cumprod_1_minus_p, dim=1)
-                return alpha
+                log_cumprod_1_minus_p = self.log_safe_cumprod(1 - p_select)
+                log_attention_weights_prev = torch.log(torch.clamp(attention_weights_cat[:, 0], min=1e-10))
+                alpha = p_select * cumprod_1_minus_p * torch.cumsum(torch.exp(log_attention_weights_prev - log_cumprod_1_minus_p), dim=1)
+
+                attention_weights = alpha
             else:
                 # hard:
                 above_threshold = (alignment > 0).float()
@@ -169,4 +170,8 @@ class MonotonicLocationSensitiveAttention(LocationSensitiveAttention):
                 for batch_i in range(attention_weights_cat.shape[0]):
                     if not attended[batch_i]:
                         attention[batch_i, -1] = 1
-                return attention
+                attention_weights = attention
+        # apply attention:
+        attention_context = torch.bmm(attention_weights.unsqueeze(1), memory)
+        attention_context = attention_context.squeeze(1)
+        return attention_context, attention_weights
