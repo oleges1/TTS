@@ -60,6 +60,23 @@ class Tacotron2Trainer(pl.LightningModule):
             return self.model(
                 text_inputs=batch['text'])
 
+    def mels_mse(self, mel_outputs, mel_outputs_postnet, batch):
+        if self.training:
+            y = batch['mel']
+            y.requires_grad = False
+            batch_size, max_length, hidden_size = y.shape
+            output_lengths = batch['mel_lengths']
+            mask = torch.arange(max_length, device=output_lengths.device,
+                            dtype=output_lengths.dtype)[None, :] < output_lengths[:, None]
+            mask = mask.bool()
+            mask.requires_grad = False
+            return self.mseloss(mel_outputs * mask, y * mask) + self.mseloss(mel_outputs_postnet * mask, y * mask)
+        else:
+            y = batch['mel'][:, :mel_outputs.shape[1]]
+            mel_outputs = mel_outputs[:, :y.shape[1]]
+            mel_outputs_postnet = mel_outputs_postnet[:, :y.shape[1]]
+            return self.mseloss(mel_outputs, y) + self.mseloss(mel_outputs_postnet, y)
+
     def guided_attention_loss(self, alignments):
         b, t, n = alignments.shape
         grid_t, grid_n = torch.meshgrid(torch.arange(t, device=alignments.device), torch.arange(n, device=alignments.device))
@@ -80,9 +97,7 @@ class Tacotron2Trainer(pl.LightningModule):
         batch = self.preprocess(batch)
         batch['mel'] = batch['mel'].permute(0, 2, 1)
         mel_outputs, mel_outputs_postnet, gate_out, alignments = self(batch)
-        y = batch['mel']
-        y.requires_grad = False
-        train_mse = self.mseloss(mel_outputs, y) + self.mseloss(mel_outputs_postnet, y)
+        train_mse = self.mels_mse(mel_outputs, mel_outputs_postnet, batch)
         train_gate = self.gate_loss(gate_out, batch['mel_lengths'])
         loss = train_mse + train_gate
         losses_dict = {
@@ -123,10 +138,7 @@ class Tacotron2Trainer(pl.LightningModule):
         batch = self.preprocess(batch)
         batch['mel'] = batch['mel'].permute(0, 2, 1)
         mel_outputs, mel_outputs_postnet, gate_out, alignments = self(batch)
-        y = batch['mel'][:, :mel_outputs.shape[1]]
-        mel_outputs = mel_outputs[:, :y.shape[1]]
-        mel_outputs_postnet = mel_outputs_postnet[:, :y.shape[1]]
-        mse = self.mseloss(mel_outputs, y) + self.mseloss(mel_outputs_postnet, y)
+        mse = self.mels_mse(mel_outputs, mel_outputs_postnet, batch)
         gate = self.gate_loss(gate_out, batch['mel_lengths'])
         loss = mse + gate
         losses_dict = {'val_loss': loss, 'val_mse': mse, 'val_gate_loss': gate}
