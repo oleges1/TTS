@@ -1,7 +1,7 @@
 #!/bin/bash
 
-image_name=...
-project_name=...
+image_name=tts_pytorch
+project_name=tts
 username=$(whoami)
 container_name=${username}-${image_name}
 
