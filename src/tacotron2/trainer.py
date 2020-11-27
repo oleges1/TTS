@@ -83,7 +83,7 @@ class Tacotron2Trainer(pl.LightningModule):
         grid_t, grid_n = torch.meshgrid(torch.arange(t, device=alignments.device), torch.arange(n, device=alignments.device))
         W = 1. - torch.exp(-(-grid_n / n + grid_t/t) ** 2 / 2 / self.g**2)
         W.requires_grad = False
-        return torch.mean(alignments * W.repeat_interleave(b, dim=0)), W
+        return torch.mean(alignments * W[None].repeat_interleave(b, dim=0)), W
 
     def gate_loss(self, gate_out, mel_lengths):
         gate_target = torch.zeros_like(gate_out)
