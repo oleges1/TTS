@@ -175,7 +175,7 @@ class Tacotron2Trainer(pl.LightningModule):
         # can return multiple optimizers and learning_rate schedulers
         # (LBFGS it is automatically supported, no need for closure function)
         optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
-        scheduler = torch.optim.StepLR(optimizer, step_size=self.step_size, gamma=self.gamma)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=self.step_size, gamma=self.gamma)
         return [optimizer], [scheduler]
 
     # dataset:
