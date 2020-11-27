@@ -138,7 +138,8 @@ class MonotonicLocationSensitiveAttention(LocationSensitiveAttention):
     ):
         if attention_weights_cat.sum() == 0:
             # first step
-            alpha = torch.zeros_like(attention_weights_cat[:, 0], requires_grad=True)
+            alpha = torch.empty_like(attention_weights_cat[:, 0], requires_grad=True)
+            alpha = 0.
             alpha[:, 0] = 1.
             attention_weights = alpha
         else:
@@ -147,11 +148,12 @@ class MonotonicLocationSensitiveAttention(LocationSensitiveAttention):
             )
             if self.training:
                 # soft:
+                alignment = alignment + self.gaussian_noise(alignment)
                 if mask is not None:
                     # fill inplace:
                     alignment = alignment.data.masked_fill_(mask, self.score_mask_value)
 
-                p_select = self.sigmoid(alignment + self.gaussian_noise(alignment))
+                p_select = self.sigmoid(alignment)
                 log_cumprod_1_minus_p = self.log_safe_cumprod(1 - p_select)
                 log_attention_weights_prev = torch.log(torch.clamp(attention_weights_cat[:, 0], min=1e-10))
                 alpha = p_select * torch.exp(log_cumprod_1_minus_p) * torch.cumsum(torch.exp(log_attention_weights_prev - log_cumprod_1_minus_p), dim=1)
