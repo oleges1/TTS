@@ -71,7 +71,7 @@ class Tacotron2Trainer(pl.LightningModule):
             mask = mask.bool()
             mask.requires_grad = False
             return self.mseloss(mel_outputs * mask[..., None], y * mask[..., None]) + self.mseloss(
-                        mel_outputs_postnet[..., None] * mask[..., None], y [..., None] * mask[..., None])
+                        mel_outputs_postnet * mask[..., None], y * mask[..., None])
         else:
             y = batch['mel'][:, :mel_outputs.shape[1]]
             mel_outputs = mel_outputs[:, :y.shape[1]]
