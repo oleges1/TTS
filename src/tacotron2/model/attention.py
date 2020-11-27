@@ -136,9 +136,10 @@ class MonotonicLocationSensitiveAttention(LocationSensitiveAttention):
         attention_weights_cat,
         mask
     ):
+        prev_attention = attention_weights_cat[:, 0]
         if attention_weights_cat.sum() == 0:
             # first step
-            alpha = torch.empty_like(attention_weights_cat[:, 0], requires_grad=True)
+            alpha = torch.empty_like(prev_attention, requires_grad=True)
             alpha[:] = 0.
             alpha[:, 0] = 1.
             attention_weights = alpha
@@ -155,7 +156,7 @@ class MonotonicLocationSensitiveAttention(LocationSensitiveAttention):
 
                 p_select = self.sigmoid(alignment)
                 log_cumprod_1_minus_p = self.log_safe_cumprod(1 - p_select)
-                log_attention_weights_prev = torch.log(torch.clamp(attention_weights_cat[:, 0], min=1e-10))
+                log_attention_weights_prev = torch.log(torch.clamp(prev_attention, min=1e-10))
                 alpha = p_select * torch.exp(log_cumprod_1_minus_p) * torch.cumsum(torch.exp(log_attention_weights_prev - log_cumprod_1_minus_p), dim=1)
 
                 attention_weights = alpha
@@ -163,7 +164,7 @@ class MonotonicLocationSensitiveAttention(LocationSensitiveAttention):
                 # hard:
                 above_threshold = (alignment > 0).float()
 
-                p_select = above_threshold * torch.cumsum(attention_weights_cat[:, 0], dim=1)
+                p_select = above_threshold * torch.cumsum(prev_attention, dim=1)
                 attention = p_select * self.exclusive_cumprod(1 - p_select)
 
                 # Not attended => attend at last encoder output
