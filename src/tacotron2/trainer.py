@@ -84,12 +84,15 @@ class Tacotron2Trainer(pl.LightningModule):
         y.requires_grad = False
         train_mse = self.mseloss(mel_outputs, y) + self.mseloss(mel_outputs_postnet, y)
         train_gate = self.gate_loss(gate_out, batch['mel_lengths'])
+        loss = train_mse + train_gate
+        losses_dict = {
+            'train_loss': loss.item(), 'train_mse': train_mse.item(), 'train_gate_loss': train_gate.item()
+        }
         if self.config.train.use_guided_attention:
             attn_loss, guide = self.guided_attention_loss(alignments)
-        loss = train_mse + train_gate + attn_loss
-        self.logger.experiment.log({
-            'train_loss': loss.item(), 'train_mse': train_mse.item(), 'train_gate_loss': train_gate.item(), 'train_attn_loss': attn_loss.item()
-        })
+            loss += attn_loss
+            losses_dict['train_attn_loss'] = attn_loss.item()
+        self.logger.experiment.log(losses_dict)
         if batch_nb % self.config.train.train_log_period == 1:
             examples = [
                 wandb.Image(mel_outputs_postnet[0].detach().cpu().numpy(), caption='predicted_mel'),
@@ -125,9 +128,12 @@ class Tacotron2Trainer(pl.LightningModule):
         mel_outputs_postnet = mel_outputs_postnet[:, :y.shape[1]]
         mse = self.mseloss(mel_outputs, y) + self.mseloss(mel_outputs_postnet, y)
         gate = self.gate_loss(gate_out, batch['mel_lengths'])
+        loss = mse + gate
+        losses_dict = {'val_loss': loss, 'val_mse': mse, 'val_gate_loss': gate}
         if self.config.train.use_guided_attention:
             attn_loss, guide = self.guided_attention_loss(alignments)
-        loss = mse + gate + attn_loss
+            losses_dict['val_attn_loss'] = attn_loss
+            loss += attn_loss
         if batch_nb % self.config.train.val_log_period == 1:
             examples = [
                 wandb.Image(mel_outputs_postnet[0].cpu().numpy(), caption='predicted_mel'),
@@ -147,21 +153,17 @@ class Tacotron2Trainer(pl.LightningModule):
             self.logger.experiment.log({
                 "audios_val": examples
             })
-        return {'val_loss': loss, 'val_mse': mse, 'val_gate_loss': gate, 'val_attn_loss': attn_loss}
+        return losses_dict
 
     def validation_epoch_end(self, outputs):
         # outputs is an array with what you returned in validation_step for each batch
         # outputs = [{'loss': batch_0_loss}, {'loss': batch_1_loss}, ..., {'loss': batch_n_loss}]
+        keys = outputs[0].keys()
+        logdict = {}
+        for key in keys:
+            logdict[f'avg_{key}'] = torch.stack([x[key] for x in outputs]).mean().item()
+        self.logger.experiment.log(logdict)
 
-        avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
-        avg_mse = torch.stack([x['val_mse'] for x in outputs]).mean()
-        avg_gate = torch.stack([x['val_gate_loss'] for x in outputs]).mean()
-        avg_attn = torch.stack([x['val_attn_loss'] for x in outputs]).mean()
-
-        self.logger.experiment.log({
-            'avg_val_loss': avg_loss, 'avg_val_mse': avg_mse,
-            'avg_gate_loss': avg_gate, 'avg_val_attn': avg_attn
-        })
         os.makedirs(self.config.train.get('checkpoint_path', 'checkpoints'), exist_ok=True)
         torch.save(
             self.model.state_dict(),
