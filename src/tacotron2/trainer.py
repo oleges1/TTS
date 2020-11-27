@@ -111,7 +111,7 @@ class Tacotron2Trainer(pl.LightningModule):
         if batch_nb % self.config.train.train_log_period == 1:
             examples = [
                 wandb.Image(mel_outputs_postnet[0].detach().cpu().numpy(), caption='predicted_mel'),
-                wandb.Image(y[0].detach().cpu().numpy(), caption='target_mel'),
+                wandb.Image(batch['mel'][0].detach().cpu().numpy(), caption='target_mel'),
                 wandb.Image(alignments[0].detach().cpu().numpy(), caption='alignment')
             ]
             self.logger.experiment.log({'input_texts_train' : wandb.Table(data=[
@@ -149,7 +149,7 @@ class Tacotron2Trainer(pl.LightningModule):
         if batch_nb % self.config.train.val_log_period == 1:
             examples = [
                 wandb.Image(mel_outputs_postnet[0].cpu().numpy(), caption='predicted_mel'),
-                wandb.Image(y[0].cpu().numpy(), caption='target_mel'),
+                wandb.Image(batch['mel'][0].cpu().numpy(), caption='target_mel'),
                 wandb.Image(alignments[0].cpu().numpy(), caption='alignment')
             ]
             self.logger.experiment.log({'input_texts_val' : wandb.Table(data=[
