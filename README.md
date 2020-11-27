@@ -11,7 +11,7 @@ Tacotron-2 core features:
  - Teacher forcing value choose (by default 1. - fully teacher forced)
  - LJspeech dataset training
 
- 
+
 Several results && weights:
  - [Default tacotron-2](https://wandb.ai/oleges/ljspeech_tacotron/runs/21uk4e0i)
  - [Tacotron2 Guided Attention](https://wandb.ai/oleges/ljspeech_tacotron_guided/runs/2ybsmorn)

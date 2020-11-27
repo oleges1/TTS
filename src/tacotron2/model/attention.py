@@ -149,10 +149,14 @@ class MonotonicLocationSensitiveAttention(LocationSensitiveAttention):
                     # fill inplace:
                     alignment = alignment.data.masked_fill_(mask, self.score_mask_value)
 
-                p_select = self.sigmoid(alignment)
-                log_cumprod_1_minus_p = self.log_safe_cumprod(1 - p_select)
-                log_attention_weights_prev = torch.log(torch.clamp(prev_attention, min=1e-10))
-                attention_weights = p_select * torch.exp(log_cumprod_1_minus_p) * torch.cumsum(torch.exp(log_attention_weights_prev - log_cumprod_1_minus_p), dim=1)
+                # p_select = self.sigmoid(alignment)
+                log_p_select = self.logsigmoid(alignment)
+                log_1_minus_p_select = self.logsigmoid(-alignment)
+                log_cumprod_1_minus_p = torch.cumsum(log_1_minus_p_select, dim=1)
+                # log_cumprod_1_minus_p = self.log_safe_cumprod(1 - p_select)
+                log_attention_weights_prev = torch.log(torch.clamp(prev_attention, min=1e-10, max=1))
+                log_attention_weights = log_p_select + log_cumprod_1_minus_p + torch.logcumsumexp(log_attention_weights_prev - log_cumprod_1_minus_p, dim=1)
+                attention_weights = torch.exp(torch.clamp(log_attention_weight, max=1))
             else:
                 # hard:
                 above_threshold = (alignment > 0).float() # zero because sigmoid!
