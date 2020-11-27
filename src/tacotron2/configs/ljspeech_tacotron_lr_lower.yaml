@@ -5,12 +5,12 @@ dataset:
   name: ljspeech
   sample_rate: 22050
 train:
-  lr: 1.e-3
+  lr: 3.e-5
   weight_decay: 1.e-6
   batch_size: 64
   num_workers: 8
   trainer: Tacotron2Trainer
-  use_guided_attention: False
+  use_guided_attention: True
   seed: 42
   train_log_period: 50
   val_log_period: 20

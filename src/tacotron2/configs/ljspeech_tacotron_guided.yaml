@@ -10,7 +10,7 @@ train:
   batch_size: 64
   num_workers: 8
   trainer: Tacotron2Trainer
-  use_guided_attention: False
+  use_guided_attention: True
   seed: 42
   train_log_period: 50
   val_log_period: 20
