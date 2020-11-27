@@ -68,7 +68,7 @@ class Tacotron2Trainer(pl.LightningModule):
             mask = torch.arange(max_length, device=output_lengths.device,
                             dtype=output_lengths.dtype)[None, :] < output_lengths[:, None]
             mask = mask.bool()
-            mask = mask[..., None].repeat_interleave_(n_mel_channels, dim=2)
+            mask = mask[..., None].repeat_interleave(n_mel_channels, dim=2)
             mask.requires_grad = False
             return self.mseloss(mel_outputs * mask,  y * mask) + self.mseloss(
                         mel_outputs_postnet * mask, y * mask)
