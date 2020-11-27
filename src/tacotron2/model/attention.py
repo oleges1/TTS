@@ -154,7 +154,7 @@ class MonotonicLocationSensitiveAttention(LocationSensitiveAttention):
                 p_select = self.sigmoid(alignment + self.gaussian_noise(alignment))
                 log_cumprod_1_minus_p = self.log_safe_cumprod(1 - p_select)
                 log_attention_weights_prev = torch.log(torch.clamp(attention_weights_cat[:, 0], min=1e-10))
-                alpha = p_select * cumprod_1_minus_p * torch.cumsum(torch.exp(log_attention_weights_prev - log_cumprod_1_minus_p), dim=1)
+                alpha = p_select * torch.exp(log_cumprod_1_minus_p) * torch.cumsum(torch.exp(log_attention_weights_prev - log_cumprod_1_minus_p), dim=1)
 
                 attention_weights = alpha
             else:
