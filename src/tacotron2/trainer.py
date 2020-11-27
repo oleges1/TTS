@@ -53,8 +53,7 @@ class Tacotron2Trainer(pl.LightningModule):
             return self.model(
                 text_inputs=batch['text'],
                 lengths=batch['text_lengths'],
-                mels=batch['mel'],
-                output_lengths=batch['mel_lengths']
+                mels=batch['mel']
             )
         else:
             return self.model(

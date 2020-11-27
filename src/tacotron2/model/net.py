@@ -22,8 +22,7 @@ class Tacotron2(nn.Module):
             self,
             text_inputs,
             lengths=None,
-            mels=None,
-            output_lengths=None
+            mels=None
         ):
         embedded_inputs = self.embedding(text_inputs)
         encoder_outputs = self.encoder(embedded_inputs)
@@ -31,12 +30,4 @@ class Tacotron2(nn.Module):
             encoder_outputs, mels=mels, lengths=lengths)
         mel_outputs_postnet = self.postnet(mel_outputs)
         mel_outputs_postnet = mel_outputs + mel_outputs_postnet
-        if output_lengths is not None:
-            batch_size, max_length, hidden_size = mels.shape
-            mask = torch.arange(max_length, device=output_lengths.device,
-                            dtype=output_lengths.dtype)[None, :] < output_lengths[:, None]
-            mask = ~(mask.bool())
-            mel_outputs.data.masked_fill_(mask[..., None], self.pad_value)
-            mel_outputs_postnet.data.masked_fill_(mask[..., None], self.pad_value)
-            gate_outputs.data.masked_fill_(mask, 1e3)
         return mel_outputs, mel_outputs_postnet, gate_outputs, alignments
