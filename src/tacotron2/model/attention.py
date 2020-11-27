@@ -139,7 +139,7 @@ class MonotonicLocationSensitiveAttention(LocationSensitiveAttention):
         if attention_weights_cat.sum() == 0:
             # first step
             alpha = torch.empty_like(attention_weights_cat[:, 0], requires_grad=True)
-            alpha = 0.
+            alpha[:] = 0.
             alpha[:, 0] = 1.
             attention_weights = alpha
         else:
