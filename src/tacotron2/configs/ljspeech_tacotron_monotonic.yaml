@@ -17,7 +17,7 @@ train:
   trainer_args:
     max_epochs: 40
     gpus: 1
-    gradient_clip_val: 10
+    gradient_clip_val: 1
 encoder:
   in_channels: 512
   cnn_layers: 3

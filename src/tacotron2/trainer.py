@@ -10,7 +10,7 @@ from tacotron2.data.transforms import (
     TextPreprocess, ToNumpy, AudioSqueeze, ToGpu)
 from tacotron2.data.collate import no_pad_collate
 from tacotron2.model.net import Tacotron2
-from tacotron2.utils import fix_seeds
+from tacotron2.utils import fix_seeds, learning_rate_decay
 
 
 class Tacotron2Trainer(pl.LightningModule):
@@ -26,6 +26,8 @@ class Tacotron2Trainer(pl.LightningModule):
         self.batch_size = config.train.batch_size
         self.weight_decay = config.train.get('weight_decay', 0.)
         self.num_workers = config.train.get('num_workers', 4)
+        self.step_size = config.train.get('step_size', 15)
+        self.gamma =  config.train.get('gamma', 0.2)
         self.text_transform = TextPreprocess(config.alphabet)
         self.mel = MelSpectrogram()
         self.gpu = ToGpu('cuda' if torch.cuda.is_available() else 'cpu')
@@ -172,7 +174,9 @@ class Tacotron2Trainer(pl.LightningModule):
         # REQUIRED
         # can return multiple optimizers and learning_rate schedulers
         # (LBFGS it is automatically supported, no need for closure function)
-        return torch.optim.Adam(self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+        scheduler = torch.optim.StepLR(optimizer, step_size=self.step_size, gamma=self.gamma)
+        return [optimizer], [scheduler]
 
     # dataset:
 
