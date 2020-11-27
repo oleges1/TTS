@@ -107,6 +107,7 @@ class MonotonicLocationSensitiveAttention(LocationSensitiveAttention):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.sigmoid = nn.Sigmoid()
+        self.logsigmoid = nn.LogSigmoid()
 
     def gaussian_noise(self, tensor_like):
         """Additive gaussian nosie to encourage discreteness"""
