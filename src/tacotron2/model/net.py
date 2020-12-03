@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from math import sqrt
 from tacotron2.model.blocks import CRNNEncoder, TacotronDecoder, Postnet
-from tacotron2.data.transforms import MelSpectrogramConfig
+from data.transforms import MelSpectrogramConfig
 
 class Tacotron2(nn.Module):
     def __init__(self, config):

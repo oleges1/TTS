@@ -1,0 +1,30 @@
+# alphabet: "SUEabcdefghijklmnopqrstuvwxyz!,;.? "
+dataset:
+  root: DB/LJspeech
+  train_part: 0.95
+  name: ljspeech
+  sample_rate: 22050
+train:
+  lr: 1.e-4
+  weight_decay: 0.0
+  batch_size: 64
+  num_workers: 8
+  trainer: WaveNetTrainer
+  seed: 42
+  train_log_period: 50
+  val_log_period: 20
+  trainer_args:
+    max_epochs: 40
+    gpus: 1
+    gradient_clip_val: 15
+model:
+  n_classes: 256
+  aux_channels: 80
+  n_channels: 256
+  skip_channels: 256
+  fast_inference: False
+  dilation_depth: 10
+  dilation_repeat: 3
+  kernel_size: 2
+  inference_strategy: argmax
+  

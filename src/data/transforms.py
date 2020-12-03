@@ -9,6 +9,7 @@ import torchaudio
 import librosa
 from matplotlib import pyplot as plt
 import numpy as np
+from utils import mu_law_encode
 
 
 @dataclass
@@ -172,6 +173,17 @@ class AddLengths:
         data['text_lengths'] = torch.tensor([item.shape[0] for item in data['text']]).to(data['text'][0].device)
         return data
 
+class AudioEncode:
+    def __init__(self, quantization_channels=256):
+        self.quantization_channels = quantization_channels
+
+    def __call__(self, data):
+        data['audio_quantized'] = mu_law_encode(data['audio'], quantization_channels=self.quantization_channels)
+        return data
+
+    def reverse(self, vector):
+        return mu_law_decode(vector, quantization_channels=self.quantization_channels)
+
 class ToGpu:
     def __init__(self, device):
         self.device = device
@@ -187,7 +199,12 @@ class Pad:
     def __call__(self, data):
         padded_batch = {}
         for k, v in data.items():
-            padding_value = self.config.pad_value if k == 'audio' else 0
+            if k == 'audio':
+                padding_value = self.config.pad_value
+            elif k == 'audio_quantized':
+                padding_value = -1
+            else:
+                padding_value = 0
             if len(v[0].shape) < 2:
                 items = [item[..., None] for item in v]
                 padded_batch[k] = torch.nn.utils.rnn.pad_sequence(items,

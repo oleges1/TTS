@@ -4,13 +4,13 @@ import wandb
 from torch import nn
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
-from tacotron2.data.ljspeech import get_dataset
-from tacotron2.data.transforms import (
+from data.ljspeech import get_dataset
+from data.transforms import (
     MelSpectrogram, Compose, AddLengths, Pad,
     TextPreprocess, ToNumpy, AudioSqueeze, ToGpu)
-from tacotron2.data.collate import no_pad_collate
+from data.collate import no_pad_collate
+from utils import fix_seeds
 from tacotron2.model.net import Tacotron2
-from tacotron2.utils import fix_seeds
 
 
 class Tacotron2Trainer(pl.LightningModule):
