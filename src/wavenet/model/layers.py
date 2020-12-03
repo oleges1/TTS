@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+import torch.nn.functional as F
 import collections
 
 class CausalConv1d(nn.Module):
@@ -46,3 +47,25 @@ class ResBlock(nn.Module):
 
     def clear(self):
         self.queue = None
+
+
+class UpSampleMel(nn.Module):
+    """UPSAMPLING LAYER WITH Conv and Billinear Upsample.
+    """
+
+    def __init__(self):
+        super(UpSampling, self).__init__()
+
+    def forward(self, h, shape):
+        """FORWARD CALCULATION.
+        Args:
+            x (Tensor): Float tensor variable with the shape (B, C, T).
+        Returns:
+            Tensor: Float tensor variable with the shape (B, C, T'),
+                where T' = shape.
+        """
+        h = h.unsqueeze(1)  # B x 1 x C x T
+        target_shape = h.size()
+        target_shape[-1] = shape
+        h = F.interpolate(h, size=target_shape[2:], mode='bilinear')
+        return h.squeeze(1)

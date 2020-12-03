@@ -14,6 +14,7 @@ class WaveNet(nn.Module):
     ):
         super(WaveNet, self).__init__()
         self.conv1 = CausalConv1d(n_classes, n_channels, kernel_size)
+        self.upsample = UpSampleMel()
         self.layer_dilations = [2 ** i for i in range(dilation_depth)] * dilation_repeat
         self.min_time = (kernel_size - 1) * sum(self.layer_dilations) + 1
         self.net = nn.ModuleList()
@@ -35,6 +36,8 @@ class WaveNet(nn.Module):
     def forward(self, x, h):
         # x - (b, n_classes, T)
         # h - (b, aux_channels, T)
+        if self.training:
+            h = self.upsample(h, shape=x.shape[-1])
         x = self.conv1(x)
         skip_sum = None
         for layer in self.net:
@@ -51,6 +54,7 @@ class WaveNet(nn.Module):
         if self.fast_inference:
             for layer in self.net:
                 layer.clear()
+        h = self.upsample(h, shape=samples+x.shape[-1])
         n_pad = self.min_time - x.shape[-1]
         if n_pad > 0:
             x = F.pad(x, (n_pad, 0), value=0.)

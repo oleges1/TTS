@@ -57,7 +57,7 @@ def mu_law_encode_torch(audio, quantization_channels=256):
     Quantize waveform amplitudes.
     Reference: https://github.com/vincentherrmann/pytorch-wavenet/blob/master/audio_data.py
     """
-    mu = float(quantization_channels - 1)
+    mu = torch.tensor(quantization_channels - 1, device=audio.device, dtype=torch.float)
     quantize_space = torch.linspace(-1, 1, quantization_channels)
 
     quantized = torch.sign(audio) * torch.log(1 + mu * torch.abs(audio)) / torch.log(mu + 1)
@@ -71,7 +71,7 @@ def mu_law_decode_torch(output, quantization_channels=256):
     Recovers waveform from quantized values.
     Reference: https://github.com/vincentherrmann/pytorch-wavenet/blob/master/audio_data.py
     """
-    mu = float(quantization_channels - 1)
+    mu = torch.tensor(quantization_channels - 1, device=output.device, dtype=torch.float)
 
     expanded = (output / quantization_channels) * 2. - 1
     waveform = torch.sign(expanded) * (

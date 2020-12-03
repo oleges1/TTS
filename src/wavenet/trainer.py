@@ -156,7 +156,7 @@ class WaveNetTrainer(pl.LightningModule):
     def val_dataloader(self):
         transforms = Compose([
             ToNumpy(),
-            AudioSqueeze()
+            AudioSqueeze(),
             self.audio_transform
         ])
         dataset_val = get_dataset(self.config, part='val', transforms=transforms, keys=['audio', 'sample_rate'])
