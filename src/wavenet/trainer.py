@@ -3,6 +3,7 @@ import math
 import torch
 import wandb
 from torch import nn
+import torch.nn.functional as F
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 from data.ljspeech import get_dataset
