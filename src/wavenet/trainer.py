@@ -49,8 +49,9 @@ class WaveNetTrainer(pl.LightningModule):
     def forward(self, batch):
         if self.training:
             # use 100% teacher forcing:
+            hot_tensor = F.one_hot(batch['audio_quantized'][..., :-1].clamp(min=0), num_classes=self.quantization_channels)
             return self.model(
-                x=F.one_hot(batch['audio_quantized'][..., :-1], num_classes=self.quantization_channels).permute(1, 0)[None].float(),
+                x=hot_tensor.permute(0, 2, 1).float(),
                 h=batch['mel'][..., :-1]
             )
         else:

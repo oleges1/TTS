@@ -9,14 +9,14 @@ train:
   weight_decay: 0.0
   step_size: 20
   gamma: 0.2
-  batch_size: 64
+  batch_size: 12
   num_workers: 8
   trainer: WaveNetTrainer
   seed: 42
   train_log_period: 50
   val_log_period: 20
-  train_max_wav_len: 40000
-  validation_wav_len: 1024
+  train_max_wav_len: 10000
+  validation_wav_len: 2048
   trainer_args:
     max_epochs: 80
     gpus: 1
