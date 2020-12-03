@@ -11,7 +11,7 @@ from data.transforms import (
 )
 from data.collate import no_pad_collate
 from wavenet.model.net import WaveNet
-from utils import fix_seeds, mu_law_decode
+from utils import fix_seeds, mu_law_decode_torch
 
 class WaveNetTrainer(pl.LightningModule):
     def __init__(
@@ -29,11 +29,11 @@ class WaveNetTrainer(pl.LightningModule):
         self.step_size = config.train.get('step_size', 15)
         self.gamma = config.train.get('optim_gamma', 0.5)
         self.quantization_channels = config.model.get('n_classes', 15)
-        self.audio_transoform = AudioEncode(quantization_channels=self.quantization_channels)
+        self.audio_transform = AudioEncode(quantization_channels=self.quantization_channels)
         self.mel = MelSpectrogram()
         self.gpu = ToGpu('cuda' if torch.cuda.is_available() else 'cpu')
         self.preprocess = Compose([
-            self.audio_transoform,
+            # self.audio_transform,
             AddLengths(),
             Pad()
         ])
@@ -75,7 +75,7 @@ class WaveNetTrainer(pl.LightningModule):
             })
             examples = []
             classes = logprobs.argmax(dim=1)
-            predicted_audio = mu_law_decode(classes)
+            predicted_audio = mu_law_decode_torch(classes)
             examples.append(wandb.Audio(predicted_audio.detach().cpu().numpy(), caption='reconstructed_wav', sample_rate=self.sample_rate))
             examples.append(wandb.Audio(batch['audio'][0].detach().cpu().numpy(), caption='target_wav', sample_rate=self.sample_rate))
             self.logger.experiment.log({
@@ -104,7 +104,7 @@ class WaveNetTrainer(pl.LightningModule):
             })
             examples = []
             classes = logprobs.argmax(dim=1)
-            predicted_audio = mu_law_decode(classes)
+            predicted_audio = mu_law_decode_torch(classes)
             examples.append(wandb.Audio(predicted_audio.detach().cpu().numpy(), caption='reconstructed_wav', sample_rate=self.sample_rate))
             examples.append(wandb.Audio(batch['audio'][0].detach().cpu().numpy(), caption='target_wav', sample_rate=self.sample_rate))
             self.logger.experiment.log({
@@ -144,7 +144,7 @@ class WaveNetTrainer(pl.LightningModule):
 
     def train_dataloader(self):
         transforms = Compose([
-            # self.text_transform,
+            self.audio_transform,
             ToNumpy(),
             AudioSqueeze()
         ])
@@ -155,7 +155,7 @@ class WaveNetTrainer(pl.LightningModule):
 
     def val_dataloader(self):
         transforms = Compose([
-            # self.text_transform,
+            self.audio_transform,
             ToNumpy(),
             AudioSqueeze()
         ])
