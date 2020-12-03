@@ -1,4 +1,5 @@
 import os
+import math
 import torch
 import wandb
 from torch import nn
@@ -33,18 +34,14 @@ class WaveNetTrainer(pl.LightningModule):
         self.sample_rate = MelSpectrogramConfig.sr
 
         self.train_max_wav_len = config.train.get('train_max_wav_len', 20000)
-        self.train_max_mel_len = self.train_max_wav_len / MelSpectrogramConfig.hop_length
+        self.train_max_mel_len = math.ceil(self.train_max_wav_len / MelSpectrogramConfig.hop_length)
         self.validation_wav_len = config.train.get('validation_wav_len', 2048)
-        self.validation_mel_len = self.validation_wav_len / MelSpectrogramConfig.hop_length
+        self.validation_mel_len = math.ceil(self.validation_wav_len / MelSpectrogramConfig.hop_length)
 
         self.audio_transform = AudioEncode(quantization_channels=self.quantization_channels)
         self.mel = MelSpectrogram()
         self.gpu = ToGpu('cuda' if torch.cuda.is_available() else 'cpu')
-        self.preprocess = Compose([
-            # self.audio_transform,
-            AddLengths(),
-            Pad()
-        ])
+        self.preprocess = Pad()
         self.crossentropy = nn.CrossEntropyLoss(ignore_index=-1) # ignore padding
         self.epoch_idx = 0
 
@@ -52,12 +49,12 @@ class WaveNetTrainer(pl.LightningModule):
         if self.training:
             # use 100% teacher forcing:
             return self.model(
-                x=F.one_hot(batch['audio_quantized'][..., :-1], num_classes=self.quantization_channels).permute(1, 0)[None],
+                x=F.one_hot(batch['audio_quantized'][..., :-1], num_classes=self.quantization_channels).permute(1, 0)[None].float(),
                 h=batch['mel'][..., :-1]
             )
         else:
             return self.model.generate(
-                x=torch.empty((1, self.quantization_channels, 0), device=batch['audio_quantized'].device, dtype=batch['audio_quantized'].dtype),
+                x=torch.empty((1, self.quantization_channels, 0), device=batch['audio_quantized'].device).float(),
                 h=batch['mel'],
                 samples=batch['audio_quantized'].shape[-1]
             )
@@ -67,8 +64,8 @@ class WaveNetTrainer(pl.LightningModule):
         # REQUIRED
         batch = self.mel(self.gpu(batch))
         batch = self.preprocess(batch)
-        batch['audio_quantized'] = batch['audio_quantized'].float()[..., :self.train_max_wav_len]
-        batch['mel'] = batch['mel'].float()[..., :self.train_max_mel_len]
+        batch['audio_quantized'] = batch['audio_quantized'][..., :self.train_max_wav_len]
+        batch['mel'] = batch['mel'][..., :self.train_max_mel_len]
         logprobs = self(batch)
         classes = logprobs.argmax(dim=1)
         loss = self.crossentropy(logprobs, batch['audio_quantized'][..., 1:])
@@ -98,8 +95,8 @@ class WaveNetTrainer(pl.LightningModule):
         # OPTIONAL
         batch = self.mel(self.gpu(batch))
         batch = self.preprocess(batch)
-        batch['audio_quantized'] = batch['audio_quantized'].float()[..., :self.validation_wav_len]
-        batch['mel'] = batch['mel'].float()[..., :self.validation_mel_len]
+        batch['audio_quantized'] = batch['audio_quantized'][..., :self.validation_wav_len]
+        batch['mel'] = batch['mel'][..., :self.validation_mel_len]
         predictions = self(batch)
         losses_dict = {
             'val_acc': (batch['audio_quantized'] == predictions).sum() / predictions.shape[-1]

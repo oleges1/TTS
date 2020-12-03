@@ -74,4 +74,4 @@ class WaveNet(nn.Module):
                 raise ValueError('Unknown inference_strategy')
             ohe_sample = F.one_hot(sample, num_classes=self.n_classes).permute(1, 0)[None] # (1, n_classes, 1)
             output = torch.cat([output, ohe_sample], dim=-1)
-        return output.argmax(dim=1) # (1, n_classes, T) -> (1, T)
+        return output.argmax(dim=1)[:, n_pad:] # (1, n_classes, T) -> (1, T)
