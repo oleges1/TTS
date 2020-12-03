@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
-from wavenet.model.layers import CausalConv1d, ResBlock
+from wavenet.model.layers import CausalConv1d, ResBlock, UpSampleMel
 from data.transforms import MelSpectrogramConfig
 
 

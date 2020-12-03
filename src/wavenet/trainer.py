@@ -10,6 +10,7 @@ from data.transforms import (
     ToNumpy, AudioSqueeze, ToGpu, AudioEncode
 )
 from data.collate import no_pad_collate
+from data.transforms import MelSpectrogramConfig
 from wavenet.model.net import WaveNet
 from utils import fix_seeds, mu_law_decode_torch
 
@@ -29,6 +30,13 @@ class WaveNetTrainer(pl.LightningModule):
         self.step_size = config.train.get('step_size', 15)
         self.gamma = config.train.get('optim_gamma', 0.5)
         self.quantization_channels = config.model.get('n_classes', 15)
+        self.sample_rate = MelSpectrogramConfig.sr
+
+        self.train_max_wav_len = config.train.get('train_max_wav_len', 20000)
+        self.train_max_mel_len = self.train_max_wav_len / MelSpectrogramConfig.hop_length
+        self.validation_wav_len = config.train.get('validation_wav_len', 2048)
+        self.validation_mel_len = self.validation_wav_len / MelSpectrogramConfig.hop_length
+
         self.audio_transform = AudioEncode(quantization_channels=self.quantization_channels)
         self.mel = MelSpectrogram()
         self.gpu = ToGpu('cuda' if torch.cuda.is_available() else 'cpu')
@@ -38,7 +46,6 @@ class WaveNetTrainer(pl.LightningModule):
             Pad()
         ])
         self.crossentropy = nn.CrossEntropyLoss(ignore_index=-1) # ignore padding
-        self.sample_rate = config.dataset.get('sample_rate', 16000)
         self.epoch_idx = 0
 
     def forward(self, batch):
@@ -60,7 +67,8 @@ class WaveNetTrainer(pl.LightningModule):
         # REQUIRED
         batch = self.mel(self.gpu(batch))
         batch = self.preprocess(batch)
-        batch['audio_quantized'] = batch['audio_quantized'].float()
+        batch['audio_quantized'] = batch['audio_quantized'].float()[..., :self.train_max_wav_len]
+        batch['mel'] = batch['mel'].float()[..., :self.train_max_mel_len]
         logprobs = self(batch)
         classes = logprobs.argmax(dim=1)
         loss = self.crossentropy(logprobs, batch['audio_quantized'][..., 1:])
@@ -90,7 +98,8 @@ class WaveNetTrainer(pl.LightningModule):
         # OPTIONAL
         batch = self.mel(self.gpu(batch))
         batch = self.preprocess(batch)
-        batch['audio_quantized'] = batch['audio_quantized'].float()
+        batch['audio_quantized'] = batch['audio_quantized'].float()[..., :self.validation_wav_len]
+        batch['mel'] = batch['mel'].float()[..., :self.validation_mel_len]
         predictions = self(batch)
         losses_dict = {
             'val_acc': (batch['audio_quantized'] == predictions).sum() / predictions.shape[-1]
