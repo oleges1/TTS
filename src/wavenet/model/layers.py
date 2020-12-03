@@ -38,8 +38,8 @@ class ResBlock(nn.Module):
             # else update queue via torch.cat
 
         else:
-            out_tanh = torch.tanh(self.filter(x) + self.aux_filter(x))
-            out_gate = torch.sigmoid(self.gate(x) + self.aux_gate(x))
+            out_tanh = torch.tanh(self.filter(x) + self.aux_filter(h))
+            out_gate = torch.sigmoid(self.gate(x) + self.aux_gate(h))
             output = self.permute(out_tanh * out_gate)
             skip = self.skip(output)
             return output, skip

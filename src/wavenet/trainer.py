@@ -59,7 +59,7 @@ class WaveNetTrainer(pl.LightningModule):
         # REQUIRED
         batch = self.mel(self.gpu(batch))
         batch = self.preprocess(batch)
-        batch['mel'] = batch['mel'].permute(0, 2, 1)
+        batch['audio_quantized'] = batch['audio_quantized'].float()
         logprobs = self(batch)
         loss = self.crossentropy(logprobs, batch['audio_quantized'][..., 1:])
         losses_dict = {
@@ -88,7 +88,7 @@ class WaveNetTrainer(pl.LightningModule):
         # OPTIONAL
         batch = self.mel(self.gpu(batch))
         batch = self.preprocess(batch)
-        batch['mel'] = batch['mel'].permute(0, 2, 1)
+        batch['audio_quantized'] = batch['audio_quantized'].float()
         logprobs = self(batch)
         loss = self.crossentropy(logprobs, batch['audio_quantized'])
         losses_dict = {

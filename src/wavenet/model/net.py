@@ -62,10 +62,10 @@ class WaveNet(nn.Module):
             logprobs = self(x_input, h_input)
 
             if self.inference_strategy == "sample":
-                probs = F.softmax(logprobs[0, -1], dim=0)
-                sample = torch.multinomial(posterior, 1)
+                probs = F.softmax(logprobs[0, :, -1], dim=0)
+                sample = torch.multinomial(posterior, 1)[None]
             elif self.inference_strategy == "argmax":
-                sample = logprobs[0, -1].argmax()
+                sample = logprobs[0, :, -1].argmax()[None]
             else:
                 raise ValueError('Unknown inference_strategy')
             ohe_sample = F.one_hot(sample, num_classes=self.n_classes).permute(1, 0)[None] # (1, n_classes, 1)
