@@ -163,14 +163,18 @@ class ToNumpy:
     """
     def __call__(self, data):
         data['audio'] = np.array(data['audio'])
-        data['text'] = np.array(data['text'])
+        if 'text' in data:
+            data['text'] = np.array(data['text'])
         return data
 
 class AddLengths:
     def __call__(self, data):
-        data['audio_lengths'] = torch.tensor([item.shape[-1] for item in data['audio']]).to(data['audio'][0].device)
-        data['mel_lengths'] = torch.tensor([item.shape[0] for item in data['mel']]).to(data['mel'][0].device)
-        data['text_lengths'] = torch.tensor([item.shape[0] for item in data['text']]).to(data['text'][0].device)
+        if 'audio' in data:
+            data['audio_lengths'] = torch.tensor([item.shape[-1] for item in data['audio']]).to(data['audio'][0].device)
+        if 'mel' in data:
+            data['mel_lengths'] = torch.tensor([item.shape[0] for item in data['mel']]).to(data['mel'][0].device)
+        if 'text' in data:
+            data['text_lengths'] = torch.tensor([item.shape[0] for item in data['text']]).to(data['text'][0].device)
         return data
 
 class AudioEncode:

@@ -14,7 +14,7 @@ class LJSpeechDataset(torchaudio.datasets.LJSPEECH):
     def __getitem__(self, idx):
         audio, sample_rate, _, norm_text = super().__getitem__(idx)
         res_dict = {}
-        for key in keys:
+        for key in self.keys:
             if key == 'audio':
                 res_dict[key] = audio
             elif key == 'text':
@@ -32,12 +32,12 @@ class LJSpeechDataset(torchaudio.datasets.LJSPEECH):
 
 def get_dataset(config, transforms=lambda x: x, part='train', download=False, *args, **kwargs):
     if part == 'train':
-        dataset = LJSpeechDataset(root=config.dataset.root, download=download, transforms=transforms)
+        dataset = LJSpeechDataset(root=config.dataset.root, download=download, transforms=transforms, *args, **kwargs)
         indices = list(range(len(dataset)))
         dataset = Subset(dataset, indices[:int(config.dataset.get('train_part', 0.95) * len(dataset))])
         return dataset
     elif part == 'val':
-        dataset = LJSpeechDataset(root=config.dataset.root, download=download, transforms=transforms)
+        dataset = LJSpeechDataset(root=config.dataset.root, download=download, transforms=transforms, *args, **kwargs)
         indices = list(range(len(dataset)))
         dataset = Subset(dataset, indices[int(config.dataset.get('train_part', 0.95) * len(dataset)):])
         return dataset
