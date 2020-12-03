@@ -51,7 +51,8 @@ class WaveNetTrainer(pl.LightningModule):
         else:
             return self.model.generate(
                 x=torch.empty((1, self.quantization_channels, 0), device=batch['audio_quantized'].device, dtype=batch['audio_quantized'].dtype),
-                h=batch['mel']
+                h=batch['mel'],
+                samples=batch['audio_quantized'].shape[-1]
             )
 
 
@@ -61,9 +62,11 @@ class WaveNetTrainer(pl.LightningModule):
         batch = self.preprocess(batch)
         batch['audio_quantized'] = batch['audio_quantized'].float()
         logprobs = self(batch)
+        classes = logprobs.argmax(dim=1)
         loss = self.crossentropy(logprobs, batch['audio_quantized'][..., 1:])
         losses_dict = {
             'train_loss': loss.item(),
+            'train_acc': (batch['audio_quantized'][..., 1:] == classes).sum() / classes.shape[-1] / classes.shape[0]
         }
         self.logger.experiment.log(losses_dict)
         if batch_nb % self.config.train.train_log_period == 1:
@@ -74,8 +77,7 @@ class WaveNetTrainer(pl.LightningModule):
                 "plots_train": examples
             })
             examples = []
-            classes = logprobs.argmax(dim=1)
-            predicted_audio = mu_law_decode_torch(classes)
+            predicted_audio = mu_law_decode_torch(classes[0])
             examples.append(wandb.Audio(predicted_audio.detach().cpu().numpy(), caption='reconstructed_wav', sample_rate=self.sample_rate))
             examples.append(wandb.Audio(batch['audio'][0].detach().cpu().numpy(), caption='target_wav', sample_rate=self.sample_rate))
             self.logger.experiment.log({
@@ -89,10 +91,9 @@ class WaveNetTrainer(pl.LightningModule):
         batch = self.mel(self.gpu(batch))
         batch = self.preprocess(batch)
         batch['audio_quantized'] = batch['audio_quantized'].float()
-        logprobs = self(batch)
-        loss = self.crossentropy(logprobs, batch['audio_quantized'])
+        predictions = self(batch)
         losses_dict = {
-            'val_loss': loss.item(),
+            'val_acc': (batch['audio_quantized'] == predictions).sum() / predictions.shape[-1]
         }
         self.logger.experiment.log(losses_dict)
         if batch_nb % self.config.train.train_log_period == 1:
@@ -103,8 +104,7 @@ class WaveNetTrainer(pl.LightningModule):
                 "plots_val": examples
             })
             examples = []
-            classes = logprobs.argmax(dim=1)
-            predicted_audio = mu_law_decode_torch(classes)
+            predicted_audio = mu_law_decode_torch(predictions[0])
             examples.append(wandb.Audio(predicted_audio.detach().cpu().numpy(), caption='reconstructed_wav', sample_rate=self.sample_rate))
             examples.append(wandb.Audio(batch['audio'][0].detach().cpu().numpy(), caption='target_wav', sample_rate=self.sample_rate))
             self.logger.experiment.log({
@@ -144,9 +144,9 @@ class WaveNetTrainer(pl.LightningModule):
 
     def train_dataloader(self):
         transforms = Compose([
-            self.audio_transform,
             ToNumpy(),
-            AudioSqueeze()
+            AudioSqueeze(),
+            self.audio_transform
         ])
         dataset_train = get_dataset(self.config, part='train', transforms=transforms, keys=['audio', 'sample_rate'])
         dataset_train = torch.utils.data.DataLoader(dataset_train,
@@ -155,9 +155,9 @@ class WaveNetTrainer(pl.LightningModule):
 
     def val_dataloader(self):
         transforms = Compose([
-            self.audio_transform,
             ToNumpy(),
             AudioSqueeze()
+            self.audio_transform
         ])
         dataset_val = get_dataset(self.config, part='val', transforms=transforms, keys=['audio', 'sample_rate'])
         dataset_val = torch.utils.data.DataLoader(dataset_val,

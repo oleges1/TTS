@@ -45,18 +45,18 @@ class WaveNet(nn.Module):
                 skip_sum = skip
         return self.postnet(skip_sum)
 
-    def generate(self, x, h):
+    def generate(self, x, h, samples):
         # x - (1, n_classes, T0)
         # h - (1, aux_channels, T)
         if self.fast_inference:
             for layer in self.net:
                 layer.clear()
-        n_pad = self.min_time - x.shape[1]
+        n_pad = self.min_time - x.shape[-1]
         if n_pad > 0:
             x = F.pad(x, (n_pad, 0), value=0.)
             h = F.pad(h, (n_pad, 0), value=self.pad_value)
         output = x
-        for _ in range(h.shape[-1] - x.shape[-1]):
+        for _ in range(samples):
             x_input = output[:, :, -self.min_time:]
             h_input = h[:, :, -self.min_time + output.shape[-1]:output.shape[-1]]
             logprobs = self(x_input, h_input)
