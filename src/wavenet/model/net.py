@@ -2,6 +2,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from wavenet.model.layers import CausalConv1d, ResBlock
+from data.transforms import MelSpectrogramConfig
 
 
 class WaveNet(nn.Module):
@@ -11,9 +12,10 @@ class WaveNet(nn.Module):
         dilation_repeat=3, kernel_size=2, inference_strategy='argmax',
         pad_value=MelSpectrogramConfig.pad_value
     ):
+        super(WaveNet, self).__init__()
         self.conv1 = CausalConv1d(n_classes, n_channels, kernel_size)
-        self.layer_dilations = [2 ** i for i in range(self.dilation_depth)] * self.dilation_repeat
-        self.min_time = (self.kernel_size - 1) * sum(self.dilations) + 1
+        self.layer_dilations = [2 ** i for i in range(dilation_depth)] * dilation_repeat
+        self.min_time = (kernel_size - 1) * sum(self.layer_dilations) + 1
         self.net = nn.ModuleList()
         for i, dilation in enumerate(self.layer_dilations):
             self.net.append(ResBlock(
@@ -21,9 +23,9 @@ class WaveNet(nn.Module):
             ))
         self.postnet = nn.Sequential(
             nn.LeakyReLU(),
-            nn.Conv1d(skip_channel, skip_channels, kernel_size=1, bias=True),
+            nn.Conv1d(skip_channels, skip_channels, kernel_size=1, bias=True),
             nn.LeakyReLU(),
-            nn.Conv1d(skip_channel, n_classes, kernel_size=1, bias=True)
+            nn.Conv1d(skip_channels, n_classes, kernel_size=1, bias=True)
         )
         self.fast_inference = fast_inference
         self.inference_strategy = inference_strategy

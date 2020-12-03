@@ -7,6 +7,8 @@ dataset:
 train:
   lr: 1.e-4
   weight_decay: 0.0
+  step_size: 20
+  gamma: 0.2
   batch_size: 64
   num_workers: 8
   trainer: WaveNetTrainer
@@ -14,7 +16,7 @@ train:
   train_log_period: 50
   val_log_period: 20
   trainer_args:
-    max_epochs: 40
+    max_epochs: 80
     gpus: 1
     gradient_clip_val: 15
 model:
@@ -27,4 +29,3 @@ model:
   dilation_repeat: 3
   kernel_size: 2
   inference_strategy: argmax
-  

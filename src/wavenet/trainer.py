@@ -19,6 +19,7 @@ class WaveNetTrainer(pl.LightningModule):
            config
         ):
         super(WaveNetTrainer, self).__init__()
+        self.config = config
         fix_seeds(seed=config.train.seed)
         self.model = WaveNet(**config.model)
         self.lr = config.train.lr
@@ -26,6 +27,7 @@ class WaveNetTrainer(pl.LightningModule):
         self.weight_decay = config.train.get('weight_decay', 0.)
         self.num_workers = config.train.get('num_workers', 4)
         self.step_size = config.train.get('step_size', 15)
+        self.gamma = config.train.get('optim_gamma', 0.5)
         self.quantization_channels = config.model.get('n_classes', 15)
         self.audio_transoform = AudioEncode(quantization_channels=self.quantization_channels)
         self.mel = MelSpectrogram()
@@ -43,8 +45,8 @@ class WaveNetTrainer(pl.LightningModule):
         if self.training:
             # use 100% teacher forcing:
             return self.model(
-                x=F.one_hot(batch['audio_quantized'][:-1], num_classes=self.quantization_channels).permute(1, 0)[None],
-                h=batch['mel'][:-1]
+                x=F.one_hot(batch['audio_quantized'][..., :-1], num_classes=self.quantization_channels).permute(1, 0)[None],
+                h=batch['mel'][..., :-1]
             )
         else:
             return self.model.generate(
@@ -59,7 +61,7 @@ class WaveNetTrainer(pl.LightningModule):
         batch = self.preprocess(batch)
         batch['mel'] = batch['mel'].permute(0, 2, 1)
         logprobs = self(batch)
-        loss = self.crossentropy(logprobs, batch['audio_quantized'][1:])
+        loss = self.crossentropy(logprobs, batch['audio_quantized'][..., 1:])
         losses_dict = {
             'train_loss': loss.item(),
         }
@@ -68,17 +70,14 @@ class WaveNetTrainer(pl.LightningModule):
             examples = [
                 wandb.Image(batch['mel'][0].detach().cpu().numpy(), caption='mel'),
             ]
-            self.logger.experiment.log({'input_texts_train' : wandb.Table(data=[
-                    self.text_transform.reverse(batch['text'][0].detach().cpu().numpy())], columns=["Text"])})
             self.logger.experiment.log({
                 "plots_train": examples
             })
             examples = []
-            if self.vocoder is not None:
-                classes = logprobs.argmax(dim=1)
-                predicted_audio = mu_law_decode(classes)
-                examples.append(wandb.Audio(predicted_audio.detach().cpu().numpy(), caption='reconstructed_wav', sample_rate=self.sample_rate))
-                examples.append(wandb.Audio(batch['audio'][0].detach().cpu().numpy(), caption='target_wav', sample_rate=self.sample_rate))
+            classes = logprobs.argmax(dim=1)
+            predicted_audio = mu_law_decode(classes)
+            examples.append(wandb.Audio(predicted_audio.detach().cpu().numpy(), caption='reconstructed_wav', sample_rate=self.sample_rate))
+            examples.append(wandb.Audio(batch['audio'][0].detach().cpu().numpy(), caption='target_wav', sample_rate=self.sample_rate))
             self.logger.experiment.log({
                 "audios_train": examples
             })
@@ -100,17 +99,14 @@ class WaveNetTrainer(pl.LightningModule):
             examples = [
                 wandb.Image(batch['mel'][0].detach().cpu().numpy(), caption='mel'),
             ]
-            self.logger.experiment.log({'input_texts_val' : wandb.Table(data=[
-                    self.text_transform.reverse(batch['text'][0].detach().cpu().numpy())], columns=["Text"])})
             self.logger.experiment.log({
                 "plots_val": examples
             })
             examples = []
-            if self.vocoder is not None:
-                classes = logprobs.argmax(dim=1)
-                predicted_audio = mu_law_decode(classes)
-                examples.append(wandb.Audio(predicted_audio.detach().cpu().numpy(), caption='reconstructed_wav', sample_rate=self.sample_rate))
-                examples.append(wandb.Audio(batch['audio'][0].detach().cpu().numpy(), caption='target_wav', sample_rate=self.sample_rate))
+            classes = logprobs.argmax(dim=1)
+            predicted_audio = mu_law_decode(classes)
+            examples.append(wandb.Audio(predicted_audio.detach().cpu().numpy(), caption='reconstructed_wav', sample_rate=self.sample_rate))
+            examples.append(wandb.Audio(batch['audio'][0].detach().cpu().numpy(), caption='target_wav', sample_rate=self.sample_rate))
             self.logger.experiment.log({
                 "audios_val": examples
             })
@@ -152,7 +148,7 @@ class WaveNetTrainer(pl.LightningModule):
             ToNumpy(),
             AudioSqueeze()
         ])
-        dataset_train = get_dataset(self.config, part='train', transforms=transforms)
+        dataset_train = get_dataset(self.config, part='train', transforms=transforms, keys=['audio', 'sample_rate'])
         dataset_train = torch.utils.data.DataLoader(dataset_train,
                               batch_size=self.batch_size, collate_fn=no_pad_collate, shuffle=True, num_workers=self.num_workers)
         return dataset_train
@@ -163,7 +159,7 @@ class WaveNetTrainer(pl.LightningModule):
             ToNumpy(),
             AudioSqueeze()
         ])
-        dataset_val = get_dataset(self.config, part='val', transforms=transforms)
+        dataset_val = get_dataset(self.config, part='val', transforms=transforms, keys=['audio', 'sample_rate'])
         dataset_val = torch.utils.data.DataLoader(dataset_val,
                               batch_size=1, collate_fn=no_pad_collate, num_workers=1)
         return dataset_val
