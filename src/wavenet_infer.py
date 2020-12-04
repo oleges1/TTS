@@ -37,5 +37,5 @@ if __name__ == '__main__':
             h=batch['mel'][0],
             samples=batch['audio_quantized'][0].shape[-1]
         )
-    predicted_audio = mu_law_decode_torch(predictions[0]).cpu().numpy()
+    predicted_audio = mu_law_decode_torch(predictions[0]).cpu()
     torchaudio.save('predicted_audio.wav', predicted_audio, sr)
