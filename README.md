@@ -11,8 +11,15 @@ Tacotron-2 core features:
  - Teacher forcing value choose (by default 1. - fully teacher forced)
  - LJspeech dataset training
 
+WaveNet:
+ - Pytorch-lightning training from various configs: src/wavenet/configs
+ - Wandb Logging
+ - Additional input for melspecs
+ - Fast inference (in progress)
+ 
 
-Several results && weights:
+Several results && weights (just degug in colab, training require much more time):
  - [Default tacotron-2](https://wandb.ai/oleges/ljspeech_tacotron/runs/21uk4e0i)
  - [Tacotron2 Guided Attention](https://wandb.ai/oleges/ljspeech_tacotron_guided/runs/2ybsmorn)
  - [Tacotron2 Monotonic Attention](https://wandb.ai/oleges/ljspeech_tacotron_monotonic/runs/25lj2aqa)
+-  [Wavenet](https://wandb.ai/oleges/ljspeech_wavenet?workspace=user-oleges)
