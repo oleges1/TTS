@@ -54,7 +54,7 @@ class WaveNet(nn.Module):
         if self.fast_inference:
             for layer in self.net:
                 layer.clear()
-        h = self.upsample(h, shape=samples+x.shape[-1])
+        h = self.upsample(h, shape=samples+x.shape[-1] + 1)
         n_pad = self.min_time - x.shape[-1]
         if n_pad > 0:
             x = F.pad(x, (n_pad, 0), value=0.)
@@ -62,7 +62,7 @@ class WaveNet(nn.Module):
         output = x
         for _ in range(samples):
             x_input = output[:, :, -self.min_time:]
-            h_input = h[:, :, -self.min_time + output.shape[-1]:output.shape[-1]]
+            h_input = h[:, :, -self.min_time + output.shape[-1] + 1:output.shape[-1] + 1]
             logprobs = self(x_input, h_input)
 
             if self.inference_strategy == "sample":

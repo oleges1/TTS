@@ -52,7 +52,7 @@ class WaveNetTrainer(pl.LightningModule):
             hot_tensor = F.one_hot(batch['audio_quantized'][..., :-1].clamp(min=0), num_classes=self.quantization_channels)
             return self.model(
                 x=hot_tensor.permute(0, 2, 1).float(),
-                h=batch['mel'][..., :-1]
+                h=batch['mel'][..., 1:]
             )
         else:
             return self.model.generate(
