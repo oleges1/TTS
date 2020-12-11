@@ -120,14 +120,14 @@ class TacotronDecoder(nn.Module):
         self.prenet = Linears(n_mel_channels, prenet_dim,
             num_layers=prenet_layers, bias=False, activation='relu', dropout=0.5)
         self.attention_rnn = ZoneOutCell(
-            nn.GRUCell(
+            nn.LSTMCell(
                 input_size=prenet_dim + encoder_embedding_dim,
                 hidden_size=attention_rnn_dim
             ), zoneout_prob=zoneout_prob)
         self.encoder_embedding_dim = encoder_embedding_dim
         self.attention_rnn_dim = attention_rnn_dim
         self.decoder_rnn = ZoneOutCell(
-            nn.GRUCell(
+            nn.LSTMCell(
                 input_size=attention_rnn_dim + encoder_embedding_dim,
                 hidden_size=decoder_rnn_dim
             ), zoneout_prob=zoneout_prob)
@@ -158,7 +158,9 @@ class TacotronDecoder(nn.Module):
     def init_states(self, encoder_out):
         batch_size, max_length, hidden_size = encoder_out.shape
         self.attention_hidden = torch.zeros((batch_size, self.attention_rnn_dim), dtype=encoder_out.dtype, device=encoder_out.device, requires_grad=True)
+        self.attention_cell =  torch.zeros_like(self.attention_hidden)
         self.decoder_hidden = torch.zeros((batch_size, self.decoder_rnn_dim), dtype=encoder_out.dtype, device=encoder_out.device, requires_grad=True)
+        self.decoder_cell =  torch.zeros_like(self.decoder_hidden)
         self.attention_context = torch.zeros((batch_size, self.encoder_embedding_dim), dtype=encoder_out.dtype, device=encoder_out.device, requires_grad=True)
         self.attention_weights = torch.zeros((batch_size, max_length), dtype=encoder_out.dtype, device=encoder_out.device, requires_grad=True)
         self.attention_weights_sum = torch.zeros((batch_size, max_length), dtype=encoder_out.dtype, device=encoder_out.device, requires_grad=True)
@@ -178,7 +180,8 @@ class TacotronDecoder(nn.Module):
 
     def step(self, state, encoder_out, mask):
         attention_input = torch.cat([state, self.attention_context], dim=-1)
-        self.attention_hidden = self.attention_rnn(attention_input, self.attention_hidden)
+        self.attention_hidden, self.attention_cell = self.attention_rnn(
+            cell_input, (self.attention_hidden, self.attention_cell))
         attention_weights_cat = torch.cat(
             (self.attention_weights.unsqueeze(1),
              self.attention_weights_sum.unsqueeze(1)), dim=1)
@@ -189,7 +192,8 @@ class TacotronDecoder(nn.Module):
 
         decoder_input = torch.cat(
             (self.attention_hidden, self.attention_context), dim=-1)
-        self.decoder_hidden = self.decoder_rnn(decoder_input, self.decoder_hidden)
+        self.decoder_hidden, self.decoder_cell = self.decoder_rnn(
+            decoder_input, (self.decoder_hidden, self.decoder_cell))
 
         decoder_hidden_attention_context = torch.cat(
             (self.decoder_hidden, self.attention_context), dim=1)
