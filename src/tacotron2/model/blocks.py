@@ -181,7 +181,7 @@ class TacotronDecoder(nn.Module):
     def step(self, state, encoder_out, mask):
         attention_input = torch.cat([state, self.attention_context], dim=-1)
         self.attention_hidden, self.attention_cell = self.attention_rnn(
-            cell_input, (self.attention_hidden, self.attention_cell))
+            attention_input, (self.attention_hidden, self.attention_cell))
         attention_weights_cat = torch.cat(
             (self.attention_weights.unsqueeze(1),
              self.attention_weights_sum.unsqueeze(1)), dim=1)
