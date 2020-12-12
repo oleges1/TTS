@@ -367,7 +367,7 @@ class MusicNetTrainer(Tacotron2Trainer):
             # Resample(44100, 16000)
 #            AudioSqueeze()
         ])
-        dataset_val = MusicNet(root=self.config.dataset.root, train=False, transforms=transforms, epoch_size=config.train.get('val_size', 1000))
+        dataset_val = MusicNet(root=self.config.dataset.root, train=False, transforms=transforms, epoch_size=self.config.train.get('val_size', 1000))
         dataset_val = torch.utils.data.DataLoader(dataset_val,
                               batch_size=1, collate_fn=no_pad_collate, num_workers=1)
         return dataset_val
