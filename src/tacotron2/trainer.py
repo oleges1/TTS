@@ -352,9 +352,9 @@ class MusicNetTrainer(Tacotron2Trainer):
     def train_dataloader(self):
         transforms = Compose([
             ToNumpy(),
-            AudioSqueeze()
+#            AudioSqueeze()
         ])
-        dataset_train = MusicNet(root=self.config.dataset.root, train=True, pitch_shift=self.config.dataset.get('pitch_shift', 0.), jitter=self.config.dataset.get('jitter', 0., transforms=transforms)
+        dataset_train = MusicNet(root=self.config.dataset.root, train=True, pitch_shift=self.config.dataset.get('pitch_shift', 0.), jitter=self.config.dataset.get('jitter', 0.), transforms=transforms)
         dataset_train = torch.utils.data.DataLoader(dataset_train,
                               batch_size=self.batch_size, collate_fn=no_pad_collate, shuffle=True, num_workers=self.num_workers)
         return dataset_train
@@ -362,7 +362,7 @@ class MusicNetTrainer(Tacotron2Trainer):
     def val_dataloader(self):
         transforms = Compose([
             ToNumpy(),
-            AudioSqueeze()
+#            AudioSqueeze()
         ])
         dataset_val = MusicNet(root=self.config.dataset.root, train=False, transforms=transforms)
         dataset_val = torch.utils.data.DataLoader(dataset_val,

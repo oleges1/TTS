@@ -73,6 +73,7 @@ class MusicNet(data.Dataset):
         self.rec_ids = list(self.labels.keys())
         self.records = dict()
         self.open_files = []
+        self.__enter__()
 
     def __enter__(self):
         for record in os.listdir(self.data_path):
