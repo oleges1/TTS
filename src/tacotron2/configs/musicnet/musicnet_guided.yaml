@@ -8,13 +8,14 @@ dataset:
 train:
   lr: 1.e-3
   weight_decay: 1.e-6
-  batch_size: 64
+  batch_size: 128
   num_workers: 8
   trainer: MusicNetTrainer
   use_guided_attention: True
   seed: 42
   train_log_period: 50
-  val_log_period: 20
+  val_log_period: 10
+  val_size: 100
   trainer_args:
     max_epochs: 40
     gpus: 1
