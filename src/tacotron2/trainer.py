@@ -5,12 +5,13 @@ from torch import nn
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 from data.ljspeech import get_dataset
+from data.musicnet import MusicNet
 from data.transforms import (
     MelSpectrogram, Compose, AddLengths, Pad,
     TextPreprocess, ToNumpy, AudioSqueeze, ToGpu)
 from data.collate import no_pad_collate
 from utils import fix_seeds
-from tacotron2.model.net import Tacotron2
+from tacotron2.model.net import Tacotron2, MusicTacotron
 
 
 class Tacotron2Trainer(pl.LightningModule):
@@ -216,6 +217,154 @@ class Tacotron2Trainer(pl.LightningModule):
             AudioSqueeze()
         ])
         dataset_val = get_dataset(self.config, part='val', transforms=transforms)
+        dataset_val = torch.utils.data.DataLoader(dataset_val,
+                              batch_size=1, collate_fn=no_pad_collate, num_workers=1)
+        return dataset_val
+
+
+
+
+class MusicNetTrainer(Tacotron2Trainer):
+    def __init__(
+           self,
+           config,
+           Vocoder=None
+        ):
+        super(Tacotron2Trainer, self).__init__()
+        fix_seeds(seed=config.train.seed)
+        self.model = MusicTacotron(config)
+        self.lr = config.train.lr
+        self.batch_size = config.train.batch_size
+        self.weight_decay = config.train.get('weight_decay', 0.)
+        self.num_workers = config.train.get('num_workers', 4)
+        self.step_size = config.train.get('step_size', 15)
+        self.gamma =  config.train.get('gamma', 0.2)
+        self.mel = MelSpectrogram()
+        self.gpu = ToGpu('cuda' if torch.cuda.is_available() else 'cpu')
+        self.preprocess = Compose([
+            AddLengths(),
+            Pad()
+        ])
+        self.mseloss = nn.MSELoss()
+        self.gate_bce = nn.BCEWithLogitsLoss()
+        self.g = config.train.get(
+            'guiding_window_width', 0.2
+        )
+        if Vocoder is not None:
+            self.vocoder = Vocoder().eval()
+        else:
+            self.vocoder = None
+        self.config = config
+        self.sample_rate = config.dataset.get('sample_rate', 16000)
+        self.epoch_idx = 0
+
+    def forward(self, batch):
+        if self.training:
+            return self.model(
+                in_mels=batch['mel'][:, :-1],
+                lengths=batch['mel_lengths'],
+                out_mels=batch['mel'][:, 1:]
+            )
+        else:
+            return self.model(
+                in_mels=batch['mel'][:, :-1]
+            )
+
+    def training_step(self, batch, batch_nb):
+        # REQUIRED
+        batch = self.mel(self.gpu(batch))
+        batch = self.preprocess(batch)
+        batch['mel'] = batch['mel'].permute(0, 2, 1)
+        mel_outputs, mel_outputs_postnet, gate_out, alignments = self(batch)
+        batch['mel'] = batch['mel'][:, 1:]
+        batch['mel_lengths'] = batch['mel_lengths'] - 1
+        train_mse = self.mels_mse(mel_outputs, mel_outputs_postnet, batch)
+        train_gate = self.gate_loss(gate_out, batch['mel_lengths'])
+        loss = train_mse + train_gate
+        losses_dict = {
+            'train_loss': loss.item(), 'train_mse': train_mse.item(), 'train_gate_loss': train_gate.item()
+        }
+        if self.config.train.use_guided_attention:
+            attn_loss, guide = self.guided_attention_loss(alignments)
+            loss += attn_loss
+            losses_dict['train_attn_loss'] = attn_loss.item()
+        self.logger.experiment.log(losses_dict)
+        if batch_nb % self.config.train.train_log_period == 1:
+            examples = [
+                wandb.Image(mel_outputs_postnet[0].detach().cpu().numpy(), caption='predicted_mel'),
+                wandb.Image(batch['mel'][0].detach().cpu().numpy(), caption='target_mel'),
+                wandb.Image(alignments[0].detach().cpu().numpy(), caption='alignment')
+            ]
+            if self.config.train.use_guided_attention:
+                examples.append(wandb.Image(guide.cpu().numpy(), caption='attention_guide'))
+            self.logger.experiment.log({
+                "plots_train": examples
+            })
+            examples = []
+            if self.vocoder is not None:
+                reconstructed_wav = self.vocoder.inference(mel_outputs_postnet[0].detach().permute(1, 0)[None])[0]
+                examples.append(wandb.Audio(reconstructed_wav.detach().cpu().numpy(), caption='reconstructed_wav', sample_rate=self.sample_rate))
+                examples.append(wandb.Audio(batch['audio'][0].detach().cpu().numpy(), caption='target_wav', sample_rate=self.sample_rate))
+            self.logger.experiment.log({
+                "audios_train": examples
+            })
+        return loss
+
+
+    def validation_step(self, batch, batch_nb):
+        # OPTIONAL
+        batch = self.mel(self.gpu(batch))
+        batch = self.preprocess(batch)
+        batch['mel'] = batch['mel'].permute(0, 2, 1)
+        mel_outputs, mel_outputs_postnet, gate_out, alignments = self(batch)
+        batch['mel'] = batch['mel'][:, 1:]
+        batch['mel_lengths'] = batch['mel_lengths'] - 1
+        mse = self.mels_mse(mel_outputs, mel_outputs_postnet, batch)
+        gate = self.gate_loss(gate_out, batch['mel_lengths'])
+        loss = mse + gate
+        losses_dict = {'val_loss': loss, 'val_mse': mse, 'val_gate_loss': gate}
+        if self.config.train.use_guided_attention:
+            attn_loss, guide = self.guided_attention_loss(alignments)
+            losses_dict['val_attn_loss'] = attn_loss
+            loss += attn_loss
+        if batch_nb % self.config.train.val_log_period == 1:
+            examples = [
+                wandb.Image(mel_outputs_postnet[0].cpu().numpy(), caption='predicted_mel'),
+                wandb.Image(batch['mel'][0].cpu().numpy(), caption='target_mel'),
+                wandb.Image(alignments[0].cpu().numpy(), caption='alignment')
+            ]
+            self.logger.experiment.log({
+                "plots_val": examples
+            })
+            examples = []
+            if self.vocoder is not None:
+                reconstructed_wav = self.vocoder.inference(mel_outputs_postnet[0].permute(1, 0)[None])[0]
+                examples.append(wandb.Audio(reconstructed_wav.cpu().numpy(), caption='reconstructed_wav', sample_rate=self.sample_rate))
+                examples.append(wandb.Audio(batch['audio'][0].cpu().numpy(), caption='target_wav', sample_rate=self.sample_rate))
+            self.logger.experiment.log({
+                "audios_val": examples
+            })
+        return losses_dict
+
+    def prepare_data(self):
+        MusicNet(root=self.config.dataset.root, download=True)
+
+    def train_dataloader(self):
+        transforms = Compose([
+            ToNumpy(),
+            AudioSqueeze()
+        ])
+        dataset_train = MusicNet(root=self.config.dataset.root, train=True, pitch_shift=self.config.dataset.get('pitch_shift', 0.), jitter=self.config.dataset.get('jitter', 0., transforms=transforms)
+        dataset_train = torch.utils.data.DataLoader(dataset_train,
+                              batch_size=self.batch_size, collate_fn=no_pad_collate, shuffle=True, num_workers=self.num_workers)
+        return dataset_train
+
+    def val_dataloader(self):
+        transforms = Compose([
+            ToNumpy(),
+            AudioSqueeze()
+        ])
+        dataset_val = MusicNet(root=self.config.dataset.root, train=False, transforms=transforms)
         dataset_val = torch.utils.data.DataLoader(dataset_val,
                               batch_size=1, collate_fn=no_pad_collate, num_workers=1)
         return dataset_val
