@@ -267,9 +267,11 @@ class MusicNetTrainer(Tacotron2Trainer):
                 out_mels=batch['mel'][:, 1:]
             )
         else:
+            self.model.decoder.teacher_forcing_ratio = 0.
             return self.model(
                 in_mels=batch['mel'][:, :-1]
             )
+            self.model.decoder.teacher_forcing_ratio = self.config.model.decoder.get('teacher_forcing_ratio', 1)
 
     def training_step(self, batch, batch_nb):
         # REQUIRED
