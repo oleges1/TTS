@@ -10,6 +10,7 @@ import errno
 import csv
 import numpy as np
 import torch
+import torchaudio
 
 from intervaltree import IntervalTree
 from scipy.io import wavfile
@@ -39,11 +40,10 @@ class MusicNet(data.Dataset):
     test_data, test_labels, test_tree = 'test_data', 'test_labels', 'test_tree.pckl'
     extracted_folders = [train_data,train_labels,test_data,test_labels]
 
-    def __init__(self, root, train=True, download=False, refresh_cache=False, mmap=False, normalize=False, window=16384, pitch_shift=0, jitter=0., epoch_size=100000, transforms=lambda x: x):
+    def __init__(self, root, train=True, download=False, refresh_cache=False, mmap=False, normalize=False, pitch_shift=0, jitter=0., epoch_size=100000, transforms=lambda x: x):
         self.refresh_cache = refresh_cache
         self.mmap = mmap
         self.normalize = normalize
-        self.window = window
         self.pitch_shift = pitch_shift
         self.jitter = jitter
         self.size = epoch_size
@@ -109,25 +109,19 @@ class MusicNet(data.Dataset):
         """
 
         scale = 2.**((shift+jitter)/12.)
+        sample_rate = 44100
 
         if self.mmap:
             x = np.frombuffer(self.records[rec_id][0][s*sz_float:int(s+scale*self.window)*sz_float], dtype=np.float32).copy()
+            xp = np.arange(self.window,dtype=np.float32)
+            x = np.interp(scale*xp,np.arange(len(x),dtype=np.float32),x).astype(np.float32)
         else:
             fid,_ = self.records[rec_id]
-            with open(fid, 'rb') as f:
-                f.seek(s*sz_float, os.SEEK_SET)
-                x = np.fromfile(f, dtype=np.float32, count=int(scale*self.window))
+            x, sample_rate = torchaudio.load(fid)
 
         if self.normalize: x /= np.linalg.norm(x) + epsilon
 
-        xp = np.arange(self.window,dtype=np.float32)
-        x = np.interp(scale*xp,np.arange(len(x),dtype=np.float32),x).astype(np.float32)
-
-        # y = np.zeros(self.m,dtype=np.float32)
-        # for label in self.labels[rec_id][s+scale*self.window/2]:
-        #     y[label.data[1]+shift] = 1
-
-        return self.transforms({'audio' : x, 'sample_rate': self.window})
+        return self.transforms({'audio' : x, 'sample_rate': sample_rate})
 
     def __getitem__(self, index):
         """

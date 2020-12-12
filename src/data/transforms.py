@@ -132,12 +132,8 @@ class Compose(object):
         for t in self.transforms:
             try:
               data = t(data)
-            except TypeError:
-              try:
-                  data['audio'] = t(data['audio'])
-              except:
-                  # audiomentation transform
-                  data['audio'] = t(data['audio'], sample_rate=data['sample_rate'])
+            except TypeError, AttributeError:
+              data['audio'] = t(data['audio'])
         return data
 
 
