@@ -9,6 +9,7 @@ from data.musicnet import MusicNet
 from data.transforms import (
     MelSpectrogram, Compose, AddLengths, Pad,
     TextPreprocess, ToNumpy, AudioSqueeze, ToGpu)
+from torchaudio.transforms import Resample
 from data.collate import no_pad_collate
 from utils import fix_seeds
 from tacotron2.model.net import Tacotron2, MusicTacotron
@@ -352,6 +353,7 @@ class MusicNetTrainer(Tacotron2Trainer):
     def train_dataloader(self):
         transforms = Compose([
             ToNumpy(),
+            Resample(44100, 16000)
 #            AudioSqueeze()
         ])
         dataset_train = MusicNet(root=self.config.dataset.root, train=True, pitch_shift=self.config.dataset.get('pitch_shift', 0.), jitter=self.config.dataset.get('jitter', 0.), transforms=transforms)
@@ -362,6 +364,7 @@ class MusicNetTrainer(Tacotron2Trainer):
     def val_dataloader(self):
         transforms = Compose([
             ToNumpy(),
+            Resample(44100, 16000)
 #            AudioSqueeze()
         ])
         dataset_val = MusicNet(root=self.config.dataset.root, train=False, transforms=transforms)
