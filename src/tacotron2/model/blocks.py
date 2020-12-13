@@ -282,7 +282,7 @@ class UncoditionalDecoder(TacotronDecoder):
              self.attention_weights_sum[:, :max_len].unsqueeze(1)), dim=1)
         self.attention_context, attention_weights = self.attention_layer(
             self.attention_hidden, encoder_out, self.attention_layer.memory(encoder_out),
-            attention_weights_cat, mask)
+            attention_weights_cat, mask[:, :max_len] if mask is not None else None)
         self.attention_weights[:, :max_len] = self.attention_weights[:, :max_len] + attention_weights
         self.attention_weights_sum = self.attention_weights_sum + self.attention_weights
 
@@ -332,7 +332,7 @@ class UncoditionalDecoder(TacotronDecoder):
             alignments.append(attention_weights.unsqueeze(1))
             if (
                 (mels is not None and len(mel_outputs) == mels.shape[1]) or
-                (mels is None and (len(mel_outputs) > max_length))
+                (mels is None and (len(mel_outputs) == max_length))
             ):
                 break
         # parse outputs:
