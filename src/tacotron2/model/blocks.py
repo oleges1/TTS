@@ -118,7 +118,7 @@ class TacotronDecoder(nn.Module):
     ):
         super(TacotronDecoder, self).__init__()
         self.prenet = Linears(n_mel_channels, prenet_dim,
-            num_layers=prenet_layers, bias=False, activation='relu', dropout=0.5)
+            num_layers=prenet_layers, bias=False, activation='relu', dropout=dropout_prob)
         self.prenet_dim = prenet_dim
         self.prenet_layers = prenet_layers
         self.attention_rnn = ZoneOutCell(
@@ -250,7 +250,7 @@ class UncoditionalDecoder(TacotronDecoder):
     def __init__(self, *args, **kwargs):
         super(UncoditionalDecoder, self).__init__(*args, **kwargs)
         self.encoder = Linears(self.n_mel_channels, self.prenet_dim,
-            num_layers=self.prenet_layers, bias=False, activation='relu', dropout=0.5)
+            num_layers=self.prenet_layers, bias=False, activation='relu', dropout=self.dropout_prob)
 
     def init_states(self, batch_size, max_length, dtype, device):
         self.attention_hidden = torch.zeros((batch_size, self.attention_rnn_dim), dtype=dtype, device=device)
@@ -305,7 +305,6 @@ class UncoditionalDecoder(TacotronDecoder):
     ):
         if mels is not None:
             batch_size = lengths.shape[0]
-            max_length = torch.max(lengths)
             mask = torch.arange(max_length, device=lengths.device,
                             dtype=lengths.dtype)[None, :] < lengths[:, None]
             mask = ~(mask.bool())

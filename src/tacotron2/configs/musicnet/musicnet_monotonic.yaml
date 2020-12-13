@@ -38,8 +38,8 @@ decoder:
   attention_location_kernel_size: 31
   use_monotonic_attention: True
   teacher_forcing_ratio: 0.9
-  dropout_prob: 0.5
-  zoneout_prob: 0.1
+  dropout_prob: 0.3
+  zoneout_prob: 0.05
 postnet:
   n_mel_channels: 80
   embedding_dim: 512
