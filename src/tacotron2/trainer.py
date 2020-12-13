@@ -276,8 +276,6 @@ class MusicNetTrainer(Tacotron2Trainer):
         batch = self.preprocess(batch)
         batch['mel'] = batch['mel'].permute(0, 2, 1)
         mel_outputs, mel_outputs_postnet, alignments = self(batch)
-        batch['mel'] = batch['mel'][:, 1:]
-        batch['mel_lengths'] = batch['mel_lengths'] - 1
         train_mse = self.mels_mse(mel_outputs, mel_outputs_postnet, batch)
         loss = train_mse
         losses_dict = {
@@ -316,8 +314,6 @@ class MusicNetTrainer(Tacotron2Trainer):
         batch = self.preprocess(batch)
         batch['mel'] = batch['mel'].permute(0, 2, 1)
         mel_outputs, mel_outputs_postnet, alignments = self(batch)
-        batch['mel'] = batch['mel'][:, 1:]
-        batch['mel_lengths'] = batch['mel_lengths'] - 1
         mse = self.mels_mse(mel_outputs, mel_outputs_postnet, batch)
         loss = mse
         losses_dict = {'val_loss': loss, 'val_mse': mse}
