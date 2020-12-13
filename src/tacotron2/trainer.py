@@ -262,30 +262,26 @@ class MusicNetTrainer(Tacotron2Trainer):
     def forward(self, batch):
         if self.training:
             return self.model(
-                in_mels=batch['mel'][:, :-1],
-                lengths=batch['mel_lengths'],
-                out_mels=batch['mel'][:, 1:]
+                mels=batch['mel'],
+                lengths=batch['mel_lengths']
             )
         else:
-            self.model.decoder.teacher_forcing_ratio = 0.
             return self.model(
-                in_mels=batch['mel'][:, :-1]
+                lengths=32000
             )
-            self.model.decoder.teacher_forcing_ratio = self.config.model.decoder.get('teacher_forcing_ratio', 1)
 
     def training_step(self, batch, batch_nb):
         # REQUIRED
         batch = self.mel(self.gpu(batch))
         batch = self.preprocess(batch)
         batch['mel'] = batch['mel'].permute(0, 2, 1)
-        mel_outputs, mel_outputs_postnet, gate_out, alignments = self(batch)
+        mel_outputs, mel_outputs_postnet, alignments = self(batch)
         batch['mel'] = batch['mel'][:, 1:]
         batch['mel_lengths'] = batch['mel_lengths'] - 1
         train_mse = self.mels_mse(mel_outputs, mel_outputs_postnet, batch)
-        train_gate = self.gate_loss(gate_out, batch['mel_lengths'])
-        loss = train_mse + train_gate
+        loss = train_mse
         losses_dict = {
-            'train_loss': loss.item(), 'train_mse': train_mse.item(), 'train_gate_loss': train_gate.item()
+            'train_loss': loss.item(), 'train_mse': train_mse.item()
         }
         if self.config.train.use_guided_attention:
             attn_loss, guide = self.guided_attention_loss(alignments)
@@ -319,13 +315,12 @@ class MusicNetTrainer(Tacotron2Trainer):
         batch = self.mel(self.gpu(batch))
         batch = self.preprocess(batch)
         batch['mel'] = batch['mel'].permute(0, 2, 1)
-        mel_outputs, mel_outputs_postnet, gate_out, alignments = self(batch)
+        mel_outputs, mel_outputs_postnet, alignments = self(batch)
         batch['mel'] = batch['mel'][:, 1:]
         batch['mel_lengths'] = batch['mel_lengths'] - 1
         mse = self.mels_mse(mel_outputs, mel_outputs_postnet, batch)
-        gate = self.gate_loss(gate_out, batch['mel_lengths'])
-        loss = mse + gate
-        losses_dict = {'val_loss': loss, 'val_mse': mse, 'val_gate_loss': gate}
+        loss = mse
+        losses_dict = {'val_loss': loss, 'val_mse': mse}
         if self.config.train.use_guided_attention:
             attn_loss, guide = self.guided_attention_loss(alignments)
             losses_dict['val_attn_loss'] = attn_loss

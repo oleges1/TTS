@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from math import sqrt
-from tacotron2.model.blocks import CRNNEncoder, TacotronDecoder, Postnet
+from tacotron2.model.blocks import CRNNEncoder, TacotronDecoder, Postnet, UncoditionalDecoder
 from data.transforms import MelSpectrogramConfig
 
 class Tacotron2(nn.Module):
@@ -36,21 +36,18 @@ class Tacotron2(nn.Module):
 class MusicTacotron(nn.Module):
     def __init__(self, config):
         super(MusicTacotron, self).__init__()
-        self.encoder = CRNNEncoder(**config.encoder)
-        self.decoder = TacotronDecoder(**config.decoder)
+        self.decoder = UncoditionalDecoder(**config.decoder)
         self.postnet = Postnet(**config.postnet)
         self.config = config
         self.pad_value = config.dataset.get('pad_value', MelSpectrogramConfig.pad_value)
 
     def forward(
             self,
-            in_mels,
-            lengths=None,
-            out_mels=None
+            lengths,
+            mels=None,
         ):
-        encoder_outputs = self.encoder(in_mels)
-        mel_outputs, gate_outputs, alignments = self.decoder(
-            encoder_outputs, mels=out_mels, lengths=lengths)
+        mel_outputs, alignments = self.decoder(
+            mels=mels, lengths=lengths)
         mel_outputs_postnet = self.postnet(mel_outputs)
         mel_outputs_postnet = mel_outputs + mel_outputs_postnet
-        return mel_outputs, mel_outputs_postnet, gate_outputs, alignments
+        return mel_outputs, mel_outputs_postnet, alignments
