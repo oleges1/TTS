@@ -261,7 +261,7 @@ class UncoditionalDecoder(TacotronDecoder):
         self.attention_weights = torch.zeros((batch_size, max_length), dtype=encoder_out.dtype, device=encoder_out.device)
         self.attention_weights_sum = torch.zeros((batch_size, max_length), dtype=encoder_out.dtype, device=encoder_out.device)
 
-    def append_first_frame(self, mels):
+    def append_first_frame(self, batch_size, mels):
         if mels is not None:
             decoder_inputs = torch.cat([
                 torch.zeros((batch_size, 1, self.n_mel_channels), dtype=encoder_out.dtype, device=encoder_out.device).uniform_(),
@@ -303,7 +303,6 @@ class UncoditionalDecoder(TacotronDecoder):
         lengths=None,
         mels=None # teacher forcing
     ):
-        decoder_inputs = self.append_first_frame(mels)
         if lengths is not None:
             batch_size = lengths.shape[0]
             max_length = torch.max(lengths.shape[0])
@@ -314,6 +313,7 @@ class UncoditionalDecoder(TacotronDecoder):
             mask = None
             max_length = lengths
         self.init_states(batch_size, max_length)
+        decoder_inputs = self.append_first_frame(batch_size, mels)
 
         mel_outputs, alignments = [], []
         decoder_inputs_processed = []
