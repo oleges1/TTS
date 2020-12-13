@@ -267,7 +267,7 @@ class MusicNetTrainer(Tacotron2Trainer):
             )
         else:
             return self.model(
-                lengths=32000
+                lengths=batch['mel_lengths']
             )
 
     def training_step(self, batch, batch_nb):

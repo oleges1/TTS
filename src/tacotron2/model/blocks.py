@@ -252,23 +252,23 @@ class UncoditionalDecoder(TacotronDecoder):
         self.encoder = Linears(self.n_mel_channels, self.prenet_dim,
             num_layers=self.prenet_layers, bias=False, activation='relu', dropout=0.5)
 
-    def init_states(self, batch_size, max_length):
-        self.attention_hidden = torch.zeros((batch_size, self.attention_rnn_dim), dtype=encoder_out.dtype, device=encoder_out.device)
+    def init_states(self, batch_size, max_length, dtype, device):
+        self.attention_hidden = torch.zeros((batch_size, self.attention_rnn_dim), dtype=dtype, device=device)
         self.attention_cell =  torch.zeros_like(self.attention_hidden)
-        self.decoder_hidden = torch.zeros((batch_size, self.decoder_rnn_dim), dtype=encoder_out.dtype, device=encoder_out.device)
+        self.decoder_hidden = torch.zeros((batch_size, self.decoder_rnn_dim), dtype=dtype, device=device)
         self.decoder_cell =  torch.zeros_like(self.decoder_hidden)
-        self.attention_context = torch.zeros((batch_size, self.encoder_embedding_dim), dtype=encoder_out.dtype, device=encoder_out.device)
-        self.attention_weights = torch.zeros((batch_size, max_length), dtype=encoder_out.dtype, device=encoder_out.device)
-        self.attention_weights_sum = torch.zeros((batch_size, max_length), dtype=encoder_out.dtype, device=encoder_out.device)
+        self.attention_context = torch.zeros((batch_size, self.encoder_embedding_dim), dtype=dtype, device=device)
+        self.attention_weights = torch.zeros((batch_size, max_length), dtype=dtype, device=device)
+        self.attention_weights_sum = torch.zeros((batch_size, max_length), dtype=dtype, device=device)
 
-    def append_first_frame(self, batch_size, mels):
+    def append_first_frame(self, batch_size, mels, dtype, device):
         if mels is not None:
             decoder_inputs = torch.cat([
-                torch.zeros((batch_size, 1, self.n_mel_channels), dtype=encoder_out.dtype, device=encoder_out.device).uniform_(),
+                torch.empty((batch_size, 1, self.n_mel_channels), dtype=dtype, device=device).uniform_(),
                 mels
             ], dim=1)
         else:
-            decoder_inputs = torch.zeros((batch_size, 1, self.n_mel_channels), dtype=encoder_out.dtype, device=encoder_out.device).uniform_()
+            decoder_inputs = torch.empty((batch_size, 1, self.n_mel_channels), dtype=dtype, device=device).uniform_()
         return decoder_inputs
 
 
@@ -300,10 +300,10 @@ class UncoditionalDecoder(TacotronDecoder):
 
     def forward(
         self,
-        lengths=None,
+        lengths,
         mels=None # teacher forcing
     ):
-        if lengths is not None:
+        if mels is not None:
             batch_size = lengths.shape[0]
             max_length = torch.max(lengths.shape[0])
             mask = torch.arange(max_length, device=lengths.device,
@@ -311,9 +311,10 @@ class UncoditionalDecoder(TacotronDecoder):
             mask = ~(mask.bool())
         else:
             mask = None
-            max_length = lengths
-        self.init_states(batch_size, max_length)
-        decoder_inputs = self.append_first_frame(batch_size, mels)
+            max_length = lengths.item()
+            batch_size = 1
+        self.init_states(batch_size, max_length, dtype=torch.float, device=lengths.device)
+        decoder_inputs = self.append_first_frame(batch_size, mels, dtype=torch.float, device=lengths.device)
 
         mel_outputs, alignments = [], []
         decoder_inputs_processed = []
