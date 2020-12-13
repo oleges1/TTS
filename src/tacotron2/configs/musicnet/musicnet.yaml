@@ -32,7 +32,7 @@ decoder:
   prenet_layers: 5
   attention_rnn_dim: 1024
   decoder_rnn_dim: 1024
-  encoder_embedding_dim: 512
+  encoder_embedding_dim: 256
   attention_dim: 128
   attention_location_n_filters: 32
   attention_location_kernel_size: 31
