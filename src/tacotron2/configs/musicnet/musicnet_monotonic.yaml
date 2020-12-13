@@ -13,37 +13,30 @@ train:
   use_guided_attention: False
   seed: 42
   train_log_period: 50
-  val_log_period: 10
-  val_size: 100
+  val_log_period: 1
+  val_size: 25
   trainer_args:
-    max_epochs: 40
+    max_epochs: 80
     gpus: 1
     gradient_clip_val: 1
-encoder:
-  in_channels: 80
-  cnn_layers: 3
-  kernel_size: 9
-  cnn_dropout: 0.2
-  rnn_layers: 1
-  hidden_size: 256
 decoder:
   n_mel_channels: 80
-  prenet_dim: 256
-  prenet_layers: 5
+  prenet_dim: 512
+  prenet_layers: 3
   attention_rnn_dim: 1024
   decoder_rnn_dim: 1024
-  encoder_embedding_dim: 256
+  encoder_embedding_dim: 512
   attention_dim: 128
   attention_location_n_filters: 32
   attention_location_kernel_size: 31
   use_monotonic_attention: True
   teacher_forcing_ratio: 0.9
   dropout_prob: 0.3
-  zoneout_prob: 0.05
+  zoneout_prob: 0
 postnet:
   n_mel_channels: 80
   embedding_dim: 512
   kernel_size: 5
   num_layers: 5
   dropout_prob: 0.5
-vocoder: waveglow # not supported yet
+vocoder: gradient # not supported yet

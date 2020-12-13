@@ -39,7 +39,7 @@ class MusicNet(data.Dataset):
     test_data, test_labels, test_tree = 'test_data', 'test_labels', 'test_tree.pckl'
     extracted_folders = [train_data,train_labels,test_data,test_labels]
 
-    def __init__(self, root, train=True, download=False, refresh_cache=False, mmap=False, normalize=False, window=16384, pitch_shift=0, jitter=0., epoch_size=100000, transforms=lambda x: x):
+    def __init__(self, root, train=True, download=False, refresh_cache=False, mmap=False, normalize=False, window=44100, pitch_shift=0, jitter=0., epoch_size=100000, transforms=lambda x: x):
         self.refresh_cache = refresh_cache
         self.mmap = mmap
         self.normalize = normalize

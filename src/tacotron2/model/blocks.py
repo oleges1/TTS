@@ -283,7 +283,7 @@ class UncoditionalDecoder(TacotronDecoder):
         self.attention_context, attention_weights = self.attention_layer(
             self.attention_hidden, encoder_out, self.attention_layer.memory(encoder_out),
             attention_weights_cat, mask[:, :max_len] if mask is not None else None)
-        self.attention_weights[:, :max_len] = self.attention_weights[:, :max_len] + attention_weights
+        self.attention_weights[:, :max_len] = attention_weights
         self.attention_weights_sum = self.attention_weights_sum + self.attention_weights
 
         decoder_input = torch.cat(
