@@ -185,7 +185,8 @@ class Tacotron2Trainer(pl.LightningModule):
             os.path.join(self.config.train.get('checkpoint_path', 'checkpoints'), f'model_{self.epoch_idx}.pth')
         )
         self.logger.experiment.save(os.path.join(self.config.train.get('checkpoint_path', 'checkpoints'), f'model_{self.epoch_idx}.pth'))
-        os.system('rm ' + os.path.join(self.config.train.get('checkpoint_path', 'checkpoints'), f'model_{self.epoch_idx}.pth'))
+        if self.epoch_idx > 0:
+            os.system('rm ' + os.path.join(self.config.train.get('checkpoint_path', 'checkpoints'), f'model_{self.epoch_idx - 1}.pth'))
         self.epoch_idx += 1
 
     def configure_optimizers(self):
