@@ -1,4 +1,5 @@
 import torch
+from torch import nn
 from data.transforms import MelSpectrogram, MelSpectrogramConfig
 
 
@@ -14,11 +15,12 @@ class OptimizerVocoder():
     def inference(self, melspectrogram, iters=1000):
         x = torch.normal(0, 1e-6, size=((melspectrogram.size(1) - 1) * MelSpectrogramConfig.hop_length, )).to(melspectrogram.device).requires_grad_()
         optimizer = torch.optim.LBFGS([x], tolerance_change=1e-16)
+        criterion = torch.nn.MSELoss()
 
         def closure():
             optimizer.zero_grad()
             mel = self.get_mel(x)
-            loss = self.criterion(mel, melspectrogram)
+            loss = criterion(mel, melspectrogram)
             loss.backward()
             return loss
 
