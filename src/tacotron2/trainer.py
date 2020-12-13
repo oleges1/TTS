@@ -253,7 +253,11 @@ class MusicNetTrainer(Tacotron2Trainer):
             'guiding_window_width', 0.2
         )
         if Vocoder is not None:
-            self.vocoder = Vocoder().eval()
+            self.vocoder = Vocoder()
+            try:
+                self.vocoder.eval()
+            except:
+                pass
         else:
             self.vocoder = None
         self.config = config
@@ -300,8 +304,8 @@ class MusicNetTrainer(Tacotron2Trainer):
             })
             examples = []
             if self.vocoder is not None:
-                # reconstructed_wav = self.vocoder.inference(mel_outputs_postnet[0].detach().permute(1, 0)[None])[0]
-                # target_wav_vocoded = self.vocoder.inference(batch['mel'][0].permute(1, 0)[None])[0]
+                reconstructed_wav = self.vocoder.inference(mel_outputs_postnet[0].detach().permute(1, 0)[None])[0]
+                target_wav_vocoded = self.vocoder.inference(batch['mel'][0].permute(1, 0)[None])[0]
                 examples.append(wandb.Audio(reconstructed_wav.cpu().numpy(), caption='reconstructed_wav', sample_rate=self.sample_rate))
                 examples.append(wandb.Audio(target_wav_vocoded.cpu().numpy(), caption='target_wav_vocoded', sample_rate=self.sample_rate))
                 examples.append(wandb.Audio(batch['audio'][0].detach().cpu().numpy(), caption='target_wav', sample_rate=self.sample_rate))
@@ -335,8 +339,8 @@ class MusicNetTrainer(Tacotron2Trainer):
             })
             examples = []
             if self.vocoder is not None:
-                # reconstructed_wav = self.vocoder.inference(mel_outputs_postnet[0].permute(1, 0)[None])[0]
-                # target_wav_vocoded = self.vocoder.inference(batch['mel'][0].permute(1, 0)[None])[0]
+                reconstructed_wav = self.vocoder.inference(mel_outputs_postnet[0].permute(1, 0)[None])[0]
+                target_wav_vocoded = self.vocoder.inference(batch['mel'][0].permute(1, 0)[None])[0]
                 examples.append(wandb.Audio(reconstructed_wav.cpu().numpy(), caption='reconstructed_wav', sample_rate=self.sample_rate))
                 examples.append(wandb.Audio(target_wav_vocoded.cpu().numpy(), caption='target_wav_vocoded', sample_rate=self.sample_rate))
                 examples.append(wandb.Audio(batch['audio'][0].cpu().numpy(), caption='target_wav', sample_rate=self.sample_rate))
