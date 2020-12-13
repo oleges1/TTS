@@ -305,6 +305,7 @@ class UncoditionalDecoder(TacotronDecoder):
     ):
         if mels is not None:
             batch_size = lengths.shape[0]
+            max_length = torch.max(lengths)
             mask = torch.arange(max_length, device=lengths.device,
                             dtype=lengths.dtype)[None, :] < lengths[:, None]
             mask = ~(mask.bool())
