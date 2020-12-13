@@ -258,7 +258,7 @@ class MusicNetTrainer(Tacotron2Trainer):
             try:
                 self.vocoder.eval()
             except:
-                pass
+                self.vocoder.mel.to('cuda' if torch.cuda.is_available() else 'cpu')
         else:
             self.vocoder = None
         self.config = config
