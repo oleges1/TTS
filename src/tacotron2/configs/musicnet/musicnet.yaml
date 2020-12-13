@@ -11,6 +11,7 @@ train:
   batch_size: 128
   num_workers: 8
   trainer: MusicNetTrainer
+  use_guided_attention: False
   seed: 42
   train_log_period: 50
   val_log_period: 10
