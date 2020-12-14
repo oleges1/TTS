@@ -10,9 +10,7 @@ class OptimizerVocoder():
         self.ref_level_db = 20.0
 
     def get_mel(self, audio):
-        return self.mel.mel_spectrogram(audio) \
-            .clamp_(min=1e-5) \
-            .log_()
+        return self.mel.mel_spectrogram(audio)
 
     def post_spec(self, x):
         x = (x - 1) * -self.min_level_db + self.ref_level_db
