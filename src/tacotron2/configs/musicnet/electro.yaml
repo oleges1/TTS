@@ -8,7 +8,7 @@ dataset:
 train:
   lr: 1.e-3
   weight_decay: 1.e-6
-  batch_size: 128
+  batch_size: 16
   num_workers: 8
   trainer: ElectroTrainer
   use_guided_attention: False

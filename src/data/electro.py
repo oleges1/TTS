@@ -1,16 +1,21 @@
 import torch.utils.data as data
+import torchaudio
+import numpy as np
+import os
+
 
 LEN_TRAIN_AUDIO = 500000
 
 
-class ElectroDataset(Dataset):
-    def __init__(self, root, subfolder='train', transforms=lambda x: x)):
+class ElectroDataset(data.Dataset):
+    def __init__(self, root, subfolder='train', transforms=lambda x: x):
         self.dir = root
         self.subfolder = subfolder
         filenames = os.listdir(self.dir)
         num_train_files = int(len(filenames) * 0.9)
         self.train = filenames[:num_train_files]
         self.test = filenames[num_train_files:]
+        self.transforms = transforms
 
     def __getitem__(self, idx):
         if self.subfolder == 'train':

@@ -400,7 +400,7 @@ class ElectroTrainer(MusicNetTrainer):
             # Resample(44100, 16000)
 #            AudioSqueeze()
         ])
-        dataset_val = ElectroDataset(root=self.config.dataset.root, 'train', transforms=transforms)
+        dataset_val = ElectroDataset(root=self.config.dataset.root, subfolder='val', transforms=transforms)
         dataset_val = torch.utils.data.DataLoader(dataset_val,
                               batch_size=1, collate_fn=no_pad_collate, num_workers=1)
         return dataset_val
