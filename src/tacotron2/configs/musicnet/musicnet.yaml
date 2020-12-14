@@ -16,6 +16,7 @@ train:
   train_log_period: 50
   val_log_period: 1
   val_size: 25
+  checkpoint_path: musicnet_checkpoints
   trainer_args:
     max_epochs: 80
     gpus: 1

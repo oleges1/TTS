@@ -292,7 +292,7 @@ class MusicNetTrainer(Tacotron2Trainer):
             loss += attn_loss
             losses_dict['train_attn_loss'] = attn_loss.item()
         self.logger.experiment.log(losses_dict)
-        if batch_nb % self.config.train.train_log_period == 1:
+        if batch_nb % self.config.train.train_log_period == 0:
             examples = [
                 wandb.Image(mel_outputs_postnet[0].detach().cpu().numpy(), caption='predicted_mel'),
                 wandb.Image(batch['mel'][0].detach().cpu().numpy(), caption='target_mel'),
