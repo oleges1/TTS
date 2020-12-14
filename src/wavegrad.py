@@ -15,7 +15,7 @@ class OptimizerVocoder():
 
     def inference(self, melspectrogram, iters=1000):
         x = torch.normal(0, 1e-2, size=((melspectrogram.size(-1) - 1) * MelSpectrogramConfig.hop_length, )).to(melspectrogram.device).requires_grad_()
-        optimizer = torch.optim.Adam([x])
+        optimizer = torch.optim.Adam([x], lr=1e-5)
         criterion = torch.nn.MSELoss()
 
         def closure():
@@ -23,6 +23,7 @@ class OptimizerVocoder():
             mel = self.get_mel(x)
             loss = criterion(mel, melspectrogram[0])
             loss.backward()
+            torch.nn.utils.clip_grad_norm_([x], max_norm=1.0)
             return loss
 
         # with tqdm() as pbar:
