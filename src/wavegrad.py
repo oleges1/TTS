@@ -33,8 +33,8 @@ class OptimizerVocoder():
 
 class LibrosaVocoder():
     def inference(self, mel, n_iter=1000):
-        mel_spec = torch.exp(torch.clamp(mels, max=10)).cpu().numpy()[0]
+        mel_spec = torch.exp(torch.clamp(mel, max=10)).cpu().numpy()[0]
         S_inv = librosa.feature.inverse.mel_to_stft(mel_spec, sr=MelSpectrogramConfig.sr, n_fft=MelSpectrogramConfig.n_fft)
         y_inv = librosa.griffinlim(S_inv, n_iter=n_iter,
                                     hop_length=MelSpectrogramConfig.hop_length)
-        return y_inv[None, :]
+        return torch.from_numpy(y_inv[None, :])
