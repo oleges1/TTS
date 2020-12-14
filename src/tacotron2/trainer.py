@@ -329,7 +329,7 @@ class MusicNetTrainer(Tacotron2Trainer):
             attn_loss, guide = self.guided_attention_loss(alignments)
             losses_dict['val_attn_loss'] = attn_loss
             loss += attn_loss
-        if batch_nb % self.config.train.val_log_period == 1:
+        if batch_nb % self.config.train.val_log_period == 0:
             examples = [
                 wandb.Image(mel_outputs_postnet[0].cpu().numpy(), caption='predicted_mel'),
                 wandb.Image(batch['mel'][0].cpu().numpy(), caption='target_mel'),

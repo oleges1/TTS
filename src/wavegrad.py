@@ -13,8 +13,8 @@ class OptimizerVocoder():
             .log_()
 
     def inference(self, melspectrogram, iters=1000):
-        x = torch.normal(0, 1, size=((melspectrogram.size(-1) - 1) * MelSpectrogramConfig.hop_length, )).to(melspectrogram.device).requires_grad_()
-        optimizer = torch.optim.LBFGS([x], tolerance_change=1e-16)
+        x = torch.normal(0, 1e-1, size=((melspectrogram.size(-1) - 1) * MelSpectrogramConfig.hop_length, )).to(melspectrogram.device).requires_grad_()
+        optimizer = torch.optim.Adam([x])
         criterion = torch.nn.MSELoss()
 
         def closure():
@@ -24,6 +24,8 @@ class OptimizerVocoder():
             loss.backward()
             return loss
 
+        # with tqdm() as pbar:
         for i in range(iters):
-            optimizer.step(closure=closure)
+            loss = optimizer.step(closure=closure)
+                # pbar.set_postfix(loss=criterion(self.get_mel(x), melspectrogram[0]).item())
         return x.detach()[:, None]
