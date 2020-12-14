@@ -14,7 +14,7 @@ from utils import mu_law_encode
 
 @dataclass
 class MelSpectrogramConfig:
-    sr: int = 22050
+    sr: int = 44100
     win_length: int = 1024
     hop_length: int = 256
     n_fft: int = 1024
