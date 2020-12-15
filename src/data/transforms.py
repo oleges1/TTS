@@ -133,7 +133,10 @@ class Compose(object):
             try:
               data = t(data)
             except:
-              data['audio'] = t(data['audio'])
+              try:
+                  data['audio'] = t(data['audio'])
+              except:
+                  data['audio'] = t(torch.from_numpy(data['audio'])).numpy()
         return data
 
 
