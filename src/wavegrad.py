@@ -10,18 +10,19 @@ class OptimizerVocoder():
 
     def get_mel(self, audio):
         return self.mel.mel_spectrogram(audio) \
-            .clamp_(min=1e-5) \
-            .log_()
+            # .clamp_(min=1e-5) \
+            # .log_()
 
     def inference(self, melspectrogram, iters=2500):
         x = torch.normal(0, 1e-2, size=((melspectrogram.size(-1) - 1) * MelSpectrogramConfig.hop_length, )).to(melspectrogram.device).requires_grad_()
         optimizer = torch.optim.Adam([x], lr=1e-4)
         criterion = torch.nn.MSELoss()
+        target_mel = torch.exp(torch.clamp(melspectrogram[0], max=3))
 
         def closure():
             optimizer.zero_grad()
             mel = self.get_mel(x)
-            loss = criterion(mel, melspectrogram[0])
+            loss = criterion(mel, target_mel)
             loss.backward()
             torch.nn.utils.clip_grad_norm_([x], max_norm=1.0)
             return loss
