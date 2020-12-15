@@ -363,7 +363,7 @@ class MusicNetTrainer(Tacotron2Trainer):
     def train_dataloader(self):
         transforms = Compose([
             ToNumpy()
-            # Resample(44100, 16000)
+            Resample(44100, 16000)
 #            AudioSqueeze()
         ])
         dataset_train = MusicNet(root=self.config.dataset.root, train=True, pitch_shift=self.config.dataset.get('pitch_shift', 0.), jitter=self.config.dataset.get('jitter', 0.), transforms=transforms)
@@ -373,8 +373,8 @@ class MusicNetTrainer(Tacotron2Trainer):
 
     def val_dataloader(self):
         transforms = Compose([
-            ToNumpy()
-            # Resample(44100, 16000)
+            ToNumpy(),
+            Resample(44100, 16000),
 #            AudioSqueeze()
         ])
         dataset_val = MusicNet(root=self.config.dataset.root, train=False, transforms=transforms, epoch_size=self.config.train.get('val_size', 1000))
@@ -388,8 +388,8 @@ class ElectroTrainer(MusicNetTrainer):
 
     def train_dataloader(self):
         transforms = Compose([
-            ToNumpy()
-            # Resample(44100, 16000)
+            ToNumpy(),
+            Resample(44100, 16000),
 #            AudioSqueeze()
         ])
         dataset_train = ElectroDataset(root=self.config.dataset.root, subfolder='train', transforms=transforms)
@@ -399,8 +399,8 @@ class ElectroTrainer(MusicNetTrainer):
 
     def val_dataloader(self):
         transforms = Compose([
-            ToNumpy()
-            # Resample(44100, 16000)
+            ToNumpy(),
+            Resample(44100, 16000),
 #            AudioSqueeze()
         ])
         dataset_val = ElectroDataset(root=self.config.dataset.root, subfolder='val', transforms=transforms)

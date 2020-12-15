@@ -1,10 +1,7 @@
 # alphabet: "SUEabcdefghijklmnopqrstuvwxyz!,;.? "
 dataset:
   root: /home/aotabisheva/DB/electronic_music
-  # name: ljspeech
-  sample_rate: 44100
-  pitch_shift: 0
-  jitter: 0.05
+  sample_rate: 16000
 train:
   lr: 1.e-3
   weight_decay: 1.e-6

@@ -2,7 +2,7 @@
 dataset:
   root: /home/aotabisheva/DB/MusicNet
   # name: ljspeech
-  sample_rate: 44100
+  sample_rate: 16000
   pitch_shift: 0
   jitter: 0.05
 train:
