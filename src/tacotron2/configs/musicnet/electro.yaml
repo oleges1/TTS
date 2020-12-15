@@ -1,7 +1,7 @@
 # alphabet: "SUEabcdefghijklmnopqrstuvwxyz!,;.? "
 dataset:
-  root: /home/aotabisheva/DB/electronic_music
-  sample_rate: 16000
+  root: /home/aotabisheva/DB/electronic_music2
+  sample_rate: 22050
 train:
   lr: 1.e-3
   weight_decay: 1.e-6

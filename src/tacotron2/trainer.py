@@ -6,7 +6,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 from data.ljspeech import get_dataset
 from data.musicnet import MusicNet
-from data.electro import ElectroDataset
+from data.electro import ElectroDataset, Electro2Dataset
 from data.transforms import (
     MelSpectrogram, Compose, AddLengths, Pad,
     TextPreprocess, ToNumpy, AudioSqueeze, ToGpu)
@@ -363,8 +363,8 @@ class MusicNetTrainer(Tacotron2Trainer):
     def train_dataloader(self):
         transforms = Compose([
             ToNumpy(),
-            Resample(44100, 16000),
-            AudioSqueeze()
+            Resample(44100, 22050),
+            # AudioSqueeze()
         ])
         dataset_train = MusicNet(root=self.config.dataset.root, train=True, pitch_shift=self.config.dataset.get('pitch_shift', 0.), jitter=self.config.dataset.get('jitter', 0.), transforms=transforms)
         dataset_train = torch.utils.data.DataLoader(dataset_train,
@@ -374,8 +374,8 @@ class MusicNetTrainer(Tacotron2Trainer):
     def val_dataloader(self):
         transforms = Compose([
             ToNumpy(),
-            Resample(44100, 16000),
-            AudioSqueeze()
+            Resample(44100, 22050),
+            # AudioSqueeze()
         ])
         dataset_val = MusicNet(root=self.config.dataset.root, train=False, transforms=transforms, epoch_size=self.config.train.get('val_size', 1000))
         dataset_val = torch.utils.data.DataLoader(dataset_val,
@@ -388,22 +388,22 @@ class ElectroTrainer(MusicNetTrainer):
 
     def train_dataloader(self):
         transforms = Compose([
-            ToNumpy(),
-            Resample(44100, 16000),
-            AudioSqueeze()
+            ToNumpy()
+            # Resample(44100, 16000),
+            # AudioSqueeze()
         ])
-        dataset_train = ElectroDataset(root=self.config.dataset.root, subfolder='train', transforms=transforms)
+        dataset_train = Electro2Dataset(root=self.config.dataset.root, subfolder='train', transforms=transforms)
         dataset_train = torch.utils.data.DataLoader(dataset_train,
                               batch_size=self.batch_size, collate_fn=no_pad_collate, shuffle=True, num_workers=self.num_workers)
         return dataset_train
 
     def val_dataloader(self):
         transforms = Compose([
-            ToNumpy(),
-            Resample(44100, 16000),
-            AudioSqueeze()
+            ToNumpy()
+            # Resample(44100, 16000),
+            # AudioSqueeze()
         ])
-        dataset_val = ElectroDataset(root=self.config.dataset.root, subfolder='val', transforms=transforms)
+        dataset_val = Electro2Dataset(root=self.config.dataset.root, subfolder='val', transforms=transforms)
         dataset_val = torch.utils.data.DataLoader(dataset_val,
                               batch_size=1, collate_fn=no_pad_collate, num_workers=1)
         return dataset_val
