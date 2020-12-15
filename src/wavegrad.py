@@ -13,9 +13,9 @@ class OptimizerVocoder():
             .clamp_(min=1e-5) \
             .log_()
 
-    def inference(self, melspectrogram, iters=1000):
+    def inference(self, melspectrogram, iters=2500):
         x = torch.normal(0, 1e-2, size=((melspectrogram.size(-1) - 1) * MelSpectrogramConfig.hop_length, )).to(melspectrogram.device).requires_grad_()
-        optimizer = torch.optim.Adam([x], lr=1e-5)
+        optimizer = torch.optim.Adam([x], lr=1e-4)
         criterion = torch.nn.MSELoss()
 
         def closure():

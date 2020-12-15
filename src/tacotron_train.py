@@ -15,7 +15,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     with open(args.config, 'r') as stream:
         config = edict(yaml.safe_load(stream))
-    pl_model = getattr(trainer, config.train.trainer)(config, Vocoder=OptimizerVocoder)
+    pl_model = getattr(trainer, config.train.trainer)(config, Vocoder=LibrosaVocoder)
     wandb_logger = WandbLogger(name='train',project=os.path.basename(args.config).split('.')[0], log_model=True)
     wandb_logger.log_hyperparams(config)
     wandb_logger.watch(pl_model.model, log='all', log_freq=100)
