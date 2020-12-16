@@ -1,0 +1,40 @@
+# alphabet: "SUEabcdefghijklmnopqrstuvwxyz!,;.? "
+dataset:
+  root: /home/aotabisheva/DB/electronic_music2
+  sample_rate: 22050
+train:
+  lr: 1.e-3
+  weight_decay: 1.e-6
+  batch_size: 12
+  num_workers: 8
+  trainer: ElectroTrainer
+  use_guided_attention: False
+  seed: 42
+  train_log_period: 50
+  val_log_period: 1
+  val_size: 25
+  checkpoint_path: electro2_checkpoints
+  trainer_args:
+    max_epochs: 80
+    gpus: 1
+    gradient_clip_val: 1
+decoder:
+  n_mel_channels: 80
+  prenet_dim: 512
+  prenet_layers: 3
+  attention_rnn_dim: 1024
+  decoder_rnn_dim: 1024
+  encoder_embedding_dim: 512
+  attention_dim: 128
+  attention_location_n_filters: 32
+  attention_location_kernel_size: 31
+  teacher_forcing_ratio: 0.9
+  dropout_prob: 0.3
+  zoneout_prob: 0
+postnet:
+  n_mel_channels: 80
+  embedding_dim: 512
+  kernel_size: 5
+  num_layers: 5
+  dropout_prob: 0.3
+vocoder: gradient # not supported yet

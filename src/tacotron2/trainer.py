@@ -26,7 +26,7 @@ class Tacotron2Trainer(pl.LightningModule):
         fix_seeds(seed=config.train.seed)
         self.model = Tacotron2(config)
         if config.train.get('weights', None) is not None:
-            model.load_state_dict(torch.load(config.train.get('weights', None)))
+            self.model.load_state_dict(torch.load(config.train.get('weights', None)))
         self.lr = config.train.lr
         self.batch_size = config.train.batch_size
         self.weight_decay = config.train.get('weight_decay', 0.)
@@ -243,7 +243,7 @@ class MusicNetTrainer(Tacotron2Trainer):
         fix_seeds(seed=config.train.seed)
         self.model = MusicTacotron(config)
         if config.train.get('weights', None) is not None:
-            model.load_state_dict(torch.load(config.train.get('weights', None)))
+            self.model.load_state_dict(torch.load(config.train.get('weights', None)))
         self.lr = config.train.lr
         self.batch_size = config.train.batch_size
         self.weight_decay = config.train.get('weight_decay', 0.)
