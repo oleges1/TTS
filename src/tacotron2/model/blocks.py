@@ -322,7 +322,7 @@ class UncoditionalDecoder(TacotronDecoder):
             if (len(mel_outputs) == 0) or (mels is not None and torch.rand(1) < self.teacher_forcing_ratio):
                 decoder_input = decoder_inputs[:, len(mel_outputs)]
             else:
-                decoder_input = mel_outputs[-1][:, 0]
+                decoder_input = mel_outputs[-1][:, 0] + torch.empty_like(mel_outputs[-1][:, 0]).uniform_() * 0.01 # add sampling
             decoder_inputs_processed.append(self.encoder(decoder_input).unsqueeze(1))
             decoder_input = self.prenet(decoder_input)
 
