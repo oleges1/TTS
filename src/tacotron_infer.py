@@ -19,6 +19,7 @@ if __name__ == '__main__':
                         help='path to config file')
     parser.add_argument('--n_samples', default=100000,
                         help='size of audio')
+    parser.add_argument('--weights', help='Weights to be infered')
     args = parser.parse_args()
     with open(args.config, 'r') as stream:
         config = edict(yaml.safe_load(stream))
@@ -31,20 +32,14 @@ if __name__ == '__main__':
         except Exception as e:
             pass
 
-    model = MusicTacotron(**config.model)
+    model = MusicTacotron(config)
     model.load_state_dict(torch.load(args.weights))
     model = model.to('cuda' if torch.cuda.is_available() else 'cpu')
-    audio_transform = AudioEncode(quantization_channels=config.model.get('n_classes', 15))
-    mel = MelSpectrogram().to('cuda' if torch.cuda.is_available() else 'cpu')
-    gpu = ToGpu('cuda' if torch.cuda.is_available() else 'cpu')
-    preprocess = Pad()
-    wav, sr = torchaudio.load(args.audio)
-    batch = audio_transform({'audio': wav, 'sample_rate': sr})
-    batch = mel(gpu({k : [v] for k, v in batch.items()}))
+
     with torch.no_grad():
         model.eval()
         mel_outputs, mel_outputs_postnet, alignments = model(
-            lengths=n_samples
+            lengths=torch.tensor(args.n_samples).to('cuda' if torch.cuda.is_available() else 'cpu')
         )
         reconstructed_wav = vocoder.inference(mel_outputs_postnet[0].permute(1, 0)[None])[0]
     torchaudio.save('predicted_audio.wav', reconstructed_wav, sr)
