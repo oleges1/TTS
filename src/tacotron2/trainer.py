@@ -25,6 +25,8 @@ class Tacotron2Trainer(pl.LightningModule):
         super(Tacotron2Trainer, self).__init__()
         fix_seeds(seed=config.train.seed)
         self.model = Tacotron2(config)
+        if config.train.get('weights', None) is not None:
+            model.load_state_dict(torch.load(config.train.get('weights', None)))
         self.lr = config.train.lr
         self.batch_size = config.train.batch_size
         self.weight_decay = config.train.get('weight_decay', 0.)
@@ -186,11 +188,11 @@ class Tacotron2Trainer(pl.LightningModule):
             os.path.join(self.config.train.get('checkpoint_path', 'checkpoints'), f'model_{self.epoch_idx}.pth')
         )
         self.logger.experiment.save(os.path.join(self.config.train.get('checkpoint_path', 'checkpoints'), f'model_{self.epoch_idx}.pth'))
-        if self.epoch_idx > 0:
-            try:
-                os.system('rm ' + os.path.join(self.config.train.get('checkpoint_path', 'checkpoints'), f'model_{self.epoch_idx - 1}.pth'))
-            except:
-                print('not delete old checkpoint')
+        # if self.epoch_idx > 0:
+        #     try:
+        #         os.system('rm ' + os.path.join(self.config.train.get('checkpoint_path', 'checkpoints'), f'model_{self.epoch_idx - 1}.pth'))
+        #     except:
+        #         print('not delete old checkpoint')
         self.epoch_idx += 1
 
     def configure_optimizers(self):
@@ -240,6 +242,8 @@ class MusicNetTrainer(Tacotron2Trainer):
         super(Tacotron2Trainer, self).__init__()
         fix_seeds(seed=config.train.seed)
         self.model = MusicTacotron(config)
+        if config.train.get('weights', None) is not None:
+            model.load_state_dict(torch.load(config.train.get('weights', None)))
         self.lr = config.train.lr
         self.batch_size = config.train.batch_size
         self.weight_decay = config.train.get('weight_decay', 0.)

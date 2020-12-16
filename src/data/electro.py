@@ -12,7 +12,7 @@ class ElectroDataset(data.Dataset):
         self.dir = root
         self.subfolder = subfolder
         filenames = os.listdir(self.dir)
-        num_train_files = int(len(filenames) * 0.9)
+        num_train_files = int(len(filenames) * 0.95)
         self.train = filenames[:num_train_files]
         self.test = filenames[num_train_files:]
         self.transforms = transforms
